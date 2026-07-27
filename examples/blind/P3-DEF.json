@@ -1,0 +1,1047 @@
+{
+  "tier": "P3-DEF",
+  "rubric": "rubrics/P3-DEF.md",
+  "paper": "AutoResearchClaw: Self-Reinforcing Autonomous Research with Human-AI Collaboration",
+  "one_sentence_test_zh": "只读引言 (sections/intro.tex) 尝试写出 `Given ___, produce ___, subject to ___, measured by ___`: Given a research idea/topic (仅在 Fig.1 caption 里说 'Given a research idea'), produce a completed experiment and optionally a full paper (Discovery/Experimentation/Writing 三阶段), subject to <空白 —— 引言从未给出算力/时间/成本/backbone/任务类型的任何约束>, measured by <只能写到 'a rubric-assisted LLM judge'，判据 CD:CE:RA=25:25:50 与 RA 双权重理由直到 §4.1 才出现>。四项中第三、四项无法从引言填出 → D1 未通过；按 rubric 规定，D2/D3 的结论均以此为前提阅读。",
+  "passed": [
+    {
+      "id": "D1.2",
+      "note_zh": "输入清楚：a research idea / topic，Fig.1 caption 与 Alg.1 的 REQUIRE 行（Research idea I）一致。"
+    },
+    {
+      "id": "D1.3",
+      "note_zh": "输出清楚：verified paper P + updated lesson store L'（Alg.1 ENSURE），并在 §4.1 区分 experiment-stage 交付物（code/results/analysis writeup）与 end-to-end 交付物（完整论文）。"
+    },
+    {
+      "id": "D2.1-partial",
+      "note_zh": "同行系统的点名到位：AI Scientist / v2、AIDE-ML、Agent Laboratory、AI Co-Scientist、MLR-Copilot、AI-Researcher、AgentRxiv、SciSciGPT 均被具名而非泛指 'prior work'。"
+    },
+    {
+      "id": "D2.2",
+      "note_zh": "差异是机制级而非'我们更好'：single-agent vs 结构化辩论、abort-on-failure vs Pivot/Refine、stateless vs 时间衰减 lesson store，每条都指名对手。（差异描述的**准确性**另见 P3-DEF-010/011。）"
+    },
+    {
+      "id": "D2.3",
+      "note_zh": "五个机制中有四个（debate / self-healing / evolution / verification）在 Table 5 组件消融中有对应行，差异有实验对应物。"
+    },
+    {
+      "id": "D2.5",
+      "note_zh": "组合非平凡性有正面论证并被检验：w/o Debate & Healing 行给出超可加交互（completion 10/10→4/10，quality 5.62→3.47），而不是只声称'我们把它们拼起来了'。"
+    },
+    {
+      "id": "D2.6-partial",
+      "note_zh": "诚实披露前作采用：'the ColliderAgent architecture we directly adopt here'（experiment.tex:85）写得明确，没有把前作架构说成自己发明的。（归属边界问题见 P3-DEF-008。）"
+    },
+    {
+      "id": "D3.3",
+      "note_zh": "相关工作按论点组织（autonomous research systems / debate 与 cross-run learning / human-AI collaboration 三段），不是时间流水账。"
+    },
+    {
+      "id": "D3.4",
+      "note_zh": "每条相关工作都写了与本文的关系（'but does not execute experiments'、'neither verifies results ... nor accumulates knowledge across runs'），不是纯摘要罗列。"
+    },
+    {
+      "id": "D4.5",
+      "note_zh": "没有把工程完成度伪装成科学结论：附录 F/G 主动报失败模式（11/13 无效 run 卡在 stage 17）、写作缺陷审计（20/20 abstract 位置错误）、以及 w/o Verification 时 acceptance 反而升高的负面结果。"
+    }
+  ],
+  "findings": [
+    {
+      "id": "P3-DEF-001",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "success-criterion-defined-post-hoc",
+      "title_zh": "主评价判据（CD:CE:RA=25:25:50）与 RA 双权重理由直到实验节才出现，且权重恰好放大本文最大优势",
+      "summary_zh": "引言把成功判据只写成 'evaluated with a rubric-assisted LLM judge'（intro.tex:33），随即在下一句给出结论性数字 'outperforms AI Scientist v2 by 54.7%'（intro.tex:34）。真正的判据——三维权重 CD:CE:RA = 25:25:50——直到 §4.1（experiment.tex:15）才出现，其双权重理由 'RA receives double weight because it captures the scientific reasoning quality that distinguishes autonomous research from automated scripting' 是纯文字论证，没有任何独立于本文结果的依据（无人类评分相关性、无判据敏感性分析）。而 RA 正是本文相对 AI Scientist v2 领先幅度最大的维度（0.523 vs 0.261，+100.4%，experiment.tex:69）。等权 CD:CE:RA=1:1:1 时 RC(CoPilot)=(0.968+0.578+0.523)/3=0.690、AISv2=(0.712+0.442+0.261)/3=0.472，相对优势从 54.7% 降到 46.2%；若只看 CE，两者差距只有 0.578 vs 0.442（+30.8%）。即：主结论的量级由一个在实验节才被引入、且理由是事后叙述的权重选择所决定。当核心指标定义出现在实验节而不是问题陈述中，审稿人会默认指标是为结果服务的。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 15,
+          "excerpt": "The strict judge grades each (framework $\\times$ topic) cell along three dimensions weighted as CD:CE:RA = 25:25:50. ... RA receives double weight because it captures the scientific reasoning quality that distinguishes autonomous research from automated scripting.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 33,
+          "excerpt": "We introduce \\bench, a 25-topic benchmark focused on the experiment stage, evaluated with a rubric-assisted LLM judge.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 34,
+          "excerpt": "On this benchmark, \\system{} outperforms AI Scientist v2 by 54.7\\%.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 69,
+          "excerpt": "The performance gap is most pronounced on Result Analysis, where \\system{} (CoPilot) scores 0.523 against AI Scientist v2's 0.261, a 100.4\\% relative improvement.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "Paper weights (0.25,0.25,0.50): RC=0.25*0.968+0.25*0.578+0.50*0.523=0.242+0.1445+0.2615=0.648 (matches Table 2); AISv2=0.25*0.712+0.25*0.442+0.50*0.261=0.178+0.1105+0.1305=0.419 (matches). Relative gain=(0.648-0.419)/0.419=54.7%. Equal weights (1/3 each): RC=(0.968+0.578+0.523)/3=0.6897; AISv2=(0.712+0.442+0.261)/3=0.4717; relative gain=46.2%. CE-only: (0.578-0.442)/0.442=30.8%. The headline 54.7% therefore depends materially on the RA double weight introduced in Sec. 4.1.",
+        "raw": {
+          "weights_source_section": "4.1 (experiment.tex:15)",
+          "intro_metric_statement": "rubric-assisted LLM judge (undefined)",
+          "appendix_weights": "appendix.tex:469-474 CD 25 / CE 25 / RA 50"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"The headline 54.7% improvement is driven by a scoring rubric whose weights (CD:CE:RA = 25:25:50) are introduced only in Sec. 4.1, and whose justification for double-weighting RA is asserted rather than validated. RA happens to be the dimension where the proposed system's advantage is largest. I would want to see (a) the weights motivated in the problem statement, independently of the results, and (b) a sensitivity analysis over the weighting (e.g. equal weights) before believing the magnitude of the claimed gain.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Move the evaluation criterion into the Introduction as part of the problem statement: 'We evaluate a system by the fraction of a per-topic rubric it satisfies, decomposed into implementation correctness (CD), execution completeness (CE), and grounded analysis (RA).' Justify the weighting independently of the results (e.g. by correlation with the human-expert scores already collected in App. C.2), and report an equal-weight variant of Table 2 in the appendix.",
+        "rationale_zh": "把判据前移并给出与结果无关的理由，是唯一能让 54.7% 这个数字被辩护的方式；权重敏感性分析成本极低（数据已在手）。"
+      }
+    },
+    {
+      "id": "P3-DEF-002",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "problem-scope-undeclared",
+      "title_zh": "问题的约束与边界（算力/时长/任务难度）不在问题陈述里，只在附录出现，且与引言的'自动化科学发现'尺度不匹配",
+      "summary_zh": "引言从 'Automating scientific discovery is a major goal of artificial intelligence'（intro.tex:6）开题，全篇未声明系统运行在什么约束下、什么**不**在范围内。真正的约束散落在两处：§4.1 的 'All frameworks use the same LLM backbone (GPT-5.3-codex) ... identical per-experiment time budgets'（experiment.tex:17），以及附录 D.1 的选题准则 'CPU-executable in under 10 minutes on a single core using standard numpy/scipy/sklearn primitives'（appendix.tex:418）+ 沙箱 'default 300--600 s' 超时（appendix.tex:332）。也就是说，被度量的'科学发现'实际是单核 CPU 10 分钟以内、用 sklearn 原语可完成的教科书式对比实验（T01 dropout、T05 PCA/t-SNE/UMAP、T12 K-means/DBSCAN/GMM）。这个边界是合理的研究选择，但它必须出现在问题陈述里而不是附录里：否则引言承诺的范围与实验覆盖的范围相差一个数量级，审稿人会按引言的尺度打分。同时 D1.6（什么不在范围内）在全文没有任何一句正面陈述。",
+      "locations": [
+        {
+          "file": "sections/intro.tex",
+          "line": 6,
+          "excerpt": "Automating scientific discovery is a major goal of artificial intelligence.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 418,
+          "excerpt": "Topic selection criteria: (1)~CPU-executable in under 10~minutes on a single core using standard \\texttt{numpy}/\\texttt{scipy}/\\texttt{sklearn} primitives;",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "All frameworks use the same LLM backbone (GPT-5.3-codex) and the same sandboxed execution environment with identical per-experiment time budgets.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 332,
+          "excerpt": "Resource limits: 8~GB memory, 2~GB shared memory, configurable wall-clock timeout (default 300--600~s).",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "constraints_absent_from_intro": [
+            "compute budget",
+            "wall-clock budget",
+            "cost per run",
+            "backbone dependence",
+            "task difficulty ceiling"
+          ],
+          "constraints_location": [
+            "experiment.tex:17",
+            "appendix.tex:332",
+            "appendix.tex:418"
+          ],
+          "cost_disclosed_only_in_ethics": "appendix.tex:764 ($3--15 per run)"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R3: \"The paper is framed as automating scientific discovery, but ARC-Bench topics are by construction CPU-executable within 10 minutes using sklearn primitives (App. D.1), i.e. textbook method comparisons rather than research questions. The operating regime (compute, wall clock, cost, backbone) is never stated as part of the problem, so the reader cannot tell what the reported numbers generalise to. Please state the intended regime and what is explicitly out of scope in Sec. 1.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Add one paragraph at the end of Sec. 1 stating scope: 'We target research tasks that are executable within a single-node CPU/GPU budget of minutes to hours and whose deliverables are code, measured results, and a written analysis. Tasks requiring novel theory, multi-day training, or physical instrumentation are out of scope. All results use a fixed backbone (GPT-5.3-codex) at $3--15 per run.'",
+        "rationale_zh": "把约束和排除项前移，能把'这只是刷 sklearn 对比'这条 weakness 从'隐瞒'降级为'明示的设计选择'。"
+      }
+    },
+    {
+      "id": "P3-DEF-003",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "metric-definition-inconsistent",
+      "title_zh": "主指标定义在正文与附录之间自相矛盾：§4.1 说 CD:CE:RA=25:25:50，附录说框架对比默认排除 CD",
+      "summary_zh": "§4.1 说 experiment-stage 模式按 CD:CE:RA = 25:25:50 打分（experiment.tex:15），Table 2 的 caption 也写 'CD:CE:RA = 25:25:50'。但附录 D.1 明确写 'Under results-only mode (default for framework comparison), CD leaves are excluded from aggregation'（appendix.tex:481），并给出两个不同的聚合式 (Eq. 6 除以 100、Eq. 7 除以 75)。两者不可能同时描述同一张表。用 Table 2 的数字反算可知实际用的是 overall_strict（含 CD），因此附录关于'框架对比默认用 results-only'的陈述是错的——或者 Table 2 用错了模式。这不是笔误层面的问题：CD 是本文与 AIDE-ML 差距最小、与 AISv2 差距最大的维度（0.968/0.958/0.712），选哪个聚合式直接改变排名叙事（results-only 下 RC=0.541、AIDE=0.362、AISv2=0.281）。D1.8 要求定义在全文保持不变，此处未满足。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 481,
+          "excerpt": "Under results-only mode (default for framework comparison), CD leaves are excluded from aggregation.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 15,
+          "excerpt": "The strict judge grades each (framework $\\times$ topic) cell along three dimensions weighted as CD:CE:RA = 25:25:50.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 29,
+          "excerpt": "\\caption{\\bench{} experiment-stage results (25 topics, CD:CE:RA = 25:25:50).}",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 478,
+          "excerpt": "\\texttt{overall\\_strict} &= \\textstyle\\sum_{\\ell} w_\\ell \\cdot s_\\ell \\;/\\; 100",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "Table 2 row RC(CoPilot): overall_strict = 0.25*0.968 + 0.25*0.578 + 0.50*0.523 = 0.648 = printed value -> Table 2 uses overall_strict, NOT results_only. results_only for the same row = (0.25*0.578 + 0.50*0.523)/0.75 = 0.4060/0.75 = 0.541. Under results_only the full column would read RC(CoPilot)=0.541, RC(Full-Auto)=0.508, AIDE-ML=0.362, AISv2=0.281, and the headline gap would become (0.541-0.281)/0.281 = 92.5% rather than 54.7%. Both numbers cannot be right under one definition.",
+        "raw": {
+          "eq_strict": "sum w*s / 100",
+          "eq_results_only": "sum_{CE,RA} w*s / 75",
+          "table2_matches": "overall_strict"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R1: \"Sec. 4.1 and App. D.1 give two different definitions of the primary metric and disagree on which one is the default for cross-framework comparison. I cannot tell which aggregation produced Table 2 without recomputing it myself. Please state one definition and use it consistently.\"",
+      "fix": {
+        "kind": "mechanical",
+        "proposed": "In App. D.1 replace 'Under results-only mode (default for framework comparison), CD leaves are excluded from aggregation.' with 'Table 2 reports overall_strict (Eq. 6), which includes CD. The results-only aggregate (Eq. 7) is reported in App. Table X for systems whose generated code is not recoverable.'",
+        "rationale_zh": "Table 2 数字与 strict 式吻合，因此需要改的是附录那句话，而不是表。"
+      }
+    },
+    {
+      "id": "P3-DEF-004",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "undefined-metric",
+      "title_zh": "科学域一栏用的 'code/exec/results/repro' 四维 rubric 从未定义，其 Overall 也无法由论文自述的聚合规则复现",
+      "summary_zh": "§4.3 与 Table 3 反复说科学域任务用 'the same code/exec/results/repro rubric'（experiment.tex:89、96-97），但全文定义过的只有三维 CD/CE/RA（experiment.tex:15、appendix.tex:469-474），第四维 'repro' 在论文任何地方都没有定义、没有权重、没有 leaf 示例。这意味着 Table 3 里 0.912/0.898/0.489/0.867 这些数字所依据的判据读者无法重建。更糟的是，Table 3 的 Overall 列与 caption 自述的聚合规则（'Failed runs are counted as zero when computing the run-weighted overall mean over the 20 science-domain tasks'）对不上：按 7 bio + 3 stat + 10 HEP 复算，本文系统应为 0.698 而不是 0.867；两个基线的 0.090/0.084 反过来只有在统计任务数为 4（而非正文所写的 S01--S03 共 3 个）时才吻合。D1.5 要求成功判据可度量、可复算，此处两条都不满足。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 89,
+          "excerpt": "Each task is graded with the same code / execution / results / repro rubric used in Table~\\ref{tab:arcbench-aggregate}, with leaf criteria rewritten to reflect domain-appropriate targets",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 96,
+          "excerpt": "Scores are computed with the same\ncode:exec:results:repro rubric as Table~\\ref{tab:arcbench-aggregate}.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 104,
+          "excerpt": "Failed runs are counted as zero when computing the run-weighted overall mean\nover the 20 science-domain tasks.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 469,
+          "excerpt": "Each topic ships with a \\texttt{rubrics/T*.json} defining a hierarchical tree of 8--11 leaf criteria across three categories:",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "Stated composition: B01-B07 = 7 tasks, S01-S03 = 3 tasks, P01-P10 = 10 tasks, total 20. Run-weighted mean with failures as zero: AutoResearchClaw = (7*0.912 + 3*0.898 + 10*0.489)/20 = (6.384 + 2.694 + 4.890)/20 = 13.968/20 = 0.6984, but Table 3 prints 0.867 (delta +0.169). AIDE-ML = (7*0 + 3*0.452 + 10*0)/20 = 1.356/20 = 0.0678, printed 0.090; 0.090 is reproduced only by (4*0.452)/20 = 0.0904. AI Scientist v2 = (3*0.418)/20 = 0.0627, printed 0.084; reproduced only by (4*0.418)/20 = 0.0836. So the two baseline rows imply 4 statistics tasks while the text says 3, and the proposed-system row matches neither count. Additionally experiment.tex:122 states one statistics run is excluded from the column mean, which is not reflected in any stated denominator.",
+        "raw": {
+          "undefined_dimension": "repro",
+          "defined_dimensions": [
+            "CD",
+            "CE",
+            "RA"
+          ],
+          "table3_values": {
+            "RC": [
+              0.912,
+              0.898,
+              0.489,
+              0.867
+            ],
+            "AIDE": [
+              null,
+              0.452,
+              null,
+              0.09
+            ],
+            "AISv2": [
+              null,
+              0.418,
+              null,
+              0.084
+            ]
+          }
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"Table 3 is graded with a 'code/exec/results/repro' rubric, but only three dimensions (CD/CE/RA) are ever defined; there is no definition, weight, or example leaf for 'repro'. I also cannot reproduce the Overall column from the aggregation rule given in the caption (I get 0.698 for the proposed system, not 0.867), and the baseline overalls are only consistent with four statistics tasks while the text lists three. The cross-domain result is currently unauditable.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Either (a) state that science-domain tasks use the same CD/CE/RA rubric and drop 'repro' from all captions, or (b) define the reproducibility dimension with its weight and one example leaf in App. D. Then recompute the Overall column from the stated rule and state explicitly how the excluded statistics run is handled in the denominator.",
+        "rationale_zh": "Table 3 是'跨域覆盖'这一贡献的唯一证据；判据未定义 + 聚合不可复算，等于这条贡献没有可核验的度量。"
+      },
+      "depends_on": []
+    },
+    {
+      "id": "P3-DEF-005",
+      "tier": "P3-DEF",
+      "severity": "minor",
+      "category": "benchmark-identifier-inconsistent",
+      "title_zh": "ARC-Bench 任务编号在正文与附录不一致（ML01--ML25 vs T01--T25）",
+      "summary_zh": "§4.1 把核心 25 个任务写作 \\textsc{ML01}--\\textsc{ML25}（experiment.tex:13、80），附录 D.1 与所有任务表、消融表、案例研究一律写作 T01--T25（appendix.tex:415、423，experiment.tex:131 的 'T02'、§4.5 的 'Topic T10'）。这是新 benchmark 的对外标识符，读者、下游使用者和 reviewer 会按论文里的 ID 去索引 topics.yaml；两套 ID 并存意味着 benchmark 的任务命名在发布时就不确定。D1.8（定义全文保持不变）在最基本的标识符层面失守。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 13,
+          "excerpt": "We introduce \\bench, a 25-topic ML benchmark (\\textsc{ML01}--\\textsc{ML25}) spanning tabular ML, optimization, dimensionality reduction, NLP, AutoML, GP kernels, topic modeling, semi-supervised learning, dynamical systems, anomaly detection, feature selection, causal discovery, and learning-to-rank",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 415,
+          "excerpt": "ARC-Bench consists of 25 CPU-executable ML research topics (T01--T25).",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 145,
+          "excerpt": "we run a system-level ablation on the same 10 ARC-BENCH topics under Full-Auto mode",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "prefix_A": "ML01-ML25 (experiment.tex:13,80)",
+          "prefix_B": "T01-T25 (appendix.tex:415,423,436; experiment.tex:131,179)"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R3: \"The benchmark's own task identifiers are inconsistent between the main text (ML01--ML25) and the appendix/tables (T01--T25). For a benchmark contribution this is confusing at best.\"",
+      "fix": {
+        "kind": "mechanical",
+        "proposed": "Use T01--T25 throughout (it is the form used by every table, the case study, and topics.yaml); replace \\textsc{ML01}--\\textsc{ML25} at experiment.tex:13 and experiment.tex:80.",
+        "rationale_zh": "附录、所有表格与案例研究都用 T 前缀，改正文两处成本最低。"
+      }
+    },
+    {
+      "id": "P3-DEF-006",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "motivation-measurement-mismatch",
+      "title_zh": "引言立论的三大能力之一'假设质量'在主基准上原理上不可测：ARC-Bench 的 rubric 预先写死了研究问题与 H1/H2/H3",
+      "summary_zh": "引言把整篇论文立在三项能力上：'challenging one's own hypotheses from multiple angles, recovering from failed experiments ..., and carrying lessons from past attempts'（intro.tex:10），并把第一项作为 debate 机制的动机。但 ARC-Bench 的每个 topic 都由 rubric 预先规定了研究问题和待检验假设——T01 的 rubric leaf 直接就是 t01-result-h1/h2/h3（appendix.tex:566-576），\\S4.1 也说每个 topic 'specifies a research question, a target dataset ... and expected experimental deliverables'。系统在这样的任务上不产生假设，只能复现预设假设的判定。因此主表（Table 2）度量的是'按既定 rubric 执行并如实报告'的能力，与'假设质量'无关；debate 在 Table 2 上的贡献只能通过 RA 维度间接体现，而 RA 度量的是 result-stage debate 而非 hypothesis-stage debate。D4.3（动机段落描述的问题确实是实验所解决的问题）未满足：三大动机中第一项没有任何直接度量。",
+      "locations": [
+        {
+          "file": "sections/intro.tex",
+          "line": 10,
+          "excerpt": "This loop depends on three capabilities: challenging one's own hypotheses from multiple angles, recovering from failed experiments without losing partial progress, and carrying lessons from past attempts into future ones.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 566,
+          "excerpt": "\\item[t01-result-h1 \\normalfont{[20.0]}]\nCompare calibration (ECE or analogous) between MC-style and standard dropout\nacross evaluated datasets; convey whether MC calibration tends to be better\n(H1 supported / refuted / inconclusive).",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 13,
+          "excerpt": "Each topic specifies a research question, a target dataset (or reference figure/simulation, for science topics), and expected experimental deliverables (code, results, analysis writeup).",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 621,
+          "excerpt": "\\paragraph{Number of debate agents ($K$).}\nWe tested $K \\in \\{2, 3, 5\\}$ across 10 runs each. $K{=}2$ degenerates into a\npro/con dynamic with $-23\\%$ hypothesis diversity.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "motivating_capabilities": [
+            "hypothesis quality",
+            "execution robustness",
+            "experience accumulation"
+          ],
+          "measured_on_main_table": [
+            "CD (implementation)",
+            "CE (execution)",
+            "RA (grounded writeup)"
+          ],
+          "hypothesis_quality_metric": "none; only an internal '-23% hypothesis diversity' number in App. E with no definition of the diversity measure"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"The paper motivates itself with three capabilities, the first being hypothesis quality, but ARC-Bench fixes the research question and even the hypotheses (the T01 rubric grades h1/h2/h3 directly). Nothing in Table 2 can measure hypothesis quality. The only quantity offered is a '-23% hypothesis diversity' in the appendix with no definition of the diversity metric. Either measure hypothesis quality directly (e.g. expert novelty/feasibility ratings on the generated hypotheses) or drop it from the motivation.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "State explicitly in Sec. 4.1 that ARC-Bench holds the research question fixed and therefore isolates execution and analysis quality, and that hypothesis-stage debate is evaluated only indirectly (via the component ablation) and in the end-to-end HITL setting. Define the hypothesis-diversity measure used in App. E.",
+        "rationale_zh": "承认度量边界比让审稿人自己发现要好；同时把 App. E 的 diversity 指标定义补上，让第一项动机至少有一个可核验的量。"
+      }
+    },
+    {
+      "id": "P3-DEF-007",
+      "tier": "P3-DEF",
+      "severity": "blocker",
+      "category": "nearest-prior-work-unnamed",
+      "title_zh": "cross-run evolution 的最近前作 MetaClaw / SimpleMem 在 .bib 里却全文零引用",
+      "summary_zh": "本文把 'cross-run evolution：把过去失败转化为未来防护，带时间衰减的持久 lesson store' 列为五大机制之一并声称 'no prior system combines ... cross-run evolution'（related_work.tex:6）。但 references.bib 中存在两条从未被 \\cite 的条目：(1) xia2026metaclaw, 'MetaClaw: Just Talk -- An Agent That Meta-Learns and Evolves in the Wild', arXiv:2603.17187 (2026)，作者列表与本文高度重叠（Liu Jiaqi / Qiu Shi / Han Siwei / Zhou Yuyin / Zheng Zeyu / Xie Cihang / Yao Huaxiu），代码在同一个 GitHub 组织 aiming-lab 下；其核心机制是 'fast, inference-time skill injection that distills reusable behavioral knowledge from failures'——与本文的 lesson store 是同一类机制；且据其公开摘要，MetaClaw 的实验就包含 AutoResearchClaw。(2) liu2026simplemem, 'SimpleMem: Efficient Lifelong Memory for LLM Agents', arXiv:2601.02553 (2026)，第一作者即本文第一作者，主题是 agent 的终身记忆。相关工作段落只引了 SkillRL 与 EvolveR 这两条更远的前作（related_work.tex:9）。最近的前作没有被点名、没有被区分，而它们就躺在参考文献里——这正是 D2.1 的 blocker 情形：审稿人一旦发现，'这是 MetaClaw 换了个调度器' 这句话就没有事实层面的反驳材料。",
+      "locations": [
+        {
+          "file": "sections/related_work.tex",
+          "line": 9,
+          "excerpt": "For learning from experience, Reflexion~\\citep{shinn2023reflexion} and Self-Refine~\\citep{madaan2023selfrefine} operate within a single episode; SkillRL~\\citep{xia2026skillrl} and EvolveR~\\citep{wang2025evolver} extend this to persistent skill libraries across tasks.",
+          "role": "primary"
+        },
+        {
+          "file": "references.bib",
+          "line": 616,
+          "excerpt": "@article{xia2026metaclaw,\n  title={{MetaClaw}: Just Talk -- An Agent That Meta-Learns and Evolves in the Wild},\n  author={Xia, Peng and Chen, Jianwen and Yang, Xinyu and Tu, Haoqin and Liu, Jiaqi and Xiong, Kaiwen and Han, Siwei and Qiu, Shi and Ji, Haonian and Zhou, Yuyin and Zheng, Zeyu and Xie, Cihang and Yao, Huaxiu},\n  journal={arXiv preprint arXiv:2603.17187},\n  year={2026}\n}",
+          "role": "contradicts"
+        },
+        {
+          "file": "references.bib",
+          "line": 630,
+          "excerpt": "@article{liu2026simplemem,\n  title={{SimpleMem}: Efficient Lifelong Memory for {LLM} Agents},\n  author={Liu, Jiaqi and Su, Yaofeng and Xia, Peng and Han, Siwei and Zheng, Zeyu and Xie, Cihang and Ding, Mingyu and Yao, Huaxiu},\n  journal={arXiv preprint arXiv:2601.02553},\n  year={2026}\n}",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "As summarized in Table~\\ref{tab:comparison}, no prior system combines end-to-end execution with multi-agent debate, self-healing, anti-fabrication verification, and cross-run evolution.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/system.tex",
+          "line": 122,
+          "excerpt": "Existing autonomous research systems are stateless across runs: every run begins without knowledge of previous attempts, repeating failures that earlier runs already encountered.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "raw": {
+          "cite_count_in_sections": {
+            "xia2026metaclaw": 0,
+            "liu2026simplemem": 0,
+            "xia2026skillrl": 1,
+            "wang2025evolver": 1
+          },
+          "metaclaw_url": "https://arxiv.org/abs/2603.17187",
+          "metaclaw_repo": "https://github.com/aiming-lab/MetaClaw",
+          "this_system_repo": "https://github.com/aiming-lab/AutoResearchClaw (main.tex:154)",
+          "metaclaw_abstract_claim": "combines fast, inference-time skill injection that distills reusable behavioral knowledge from failures, and slow, gradient-based policy optimization; 'Experiments on MetaClaw-Bench and AutoResearchClaw show that skill-driven adaptation improves accuracy by up to 32% relative'",
+          "author_overlap": [
+            "Jiaqi Liu",
+            "Shi Qiu",
+            "Siwei Han",
+            "Peng Xia",
+            "Haoqin Tu",
+            "Xinyu Yang",
+            "Zeyu Zheng",
+            "Cihang Xie",
+            "Yuyin Zhou",
+            "Huaxiu Yao"
+          ]
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"The cross-run evolution mechanism is presented as new, but MetaClaw (arXiv 2603.17187) already distils reusable knowledge from failures and injects it at inference time, and its own evaluation is reported on AutoResearchClaw; SimpleMem (arXiv 2601.02553) covers lifelong memory for agents. Both are in the submitted bibliography yet neither is cited or differentiated. Without an explicit delta against these, I read the lesson store as an application of existing work rather than a contribution.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Add to the 'Multi-agent debate and cross-run learning' paragraph: 'Closest to our lesson store are MetaClaw [xia2026metaclaw], which distils reusable skills from failures and injects them at inference time, and SimpleMem [liu2026simplemem], which maintains lifelong agent memory. Unlike both, our store is (i) scoped to research-pipeline artefacts (repair traces, Pivot/Refine decisions, HITL feedback, verification outcomes) rather than task skills, and (ii) ranked by a severity x time-decay weight (Eq. 1) so that stale lessons fade. We report the half-life ablation in App. E.'",
+        "rationale_zh": "这条差异是可辩护的（lesson 的来源与排序规则确实不同），但必须写出来；不写就等于把最近前作藏进 bib。"
+      }
+    },
+    {
+      "id": "P3-DEF-008",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "contribution-attribution-boundary",
+      "title_zh": "'跨域覆盖'被列为本文成果，但 HEP 能力直接采用前作 ColliderAgent，且'无需 per-domain 工程'与上一句自相矛盾",
+      "summary_zh": "摘要与引言把跨域能力算作本文成果（intro.tex:36 'Further analysis shows that the modular design of \\system{} can connect to domain-specific scientific experiments, including high-energy theory'；§4.3 整节题为 Cross-Domain Coverage，是 Table 3 的立论）。但 §4.3 自己写明 HEP agent 的 FeynRules/MadGraph/MadAnalysis 技能来自 \\citet{qiu2026...}，'which introduced the ColliderAgent architecture we directly adopt here'（experiment.tex:85）。同一段的下一句却写 'This design is what enables \\system{} to reproduce experiments across heterogeneous scientific fields without per-domain engineering effort'（experiment.tex:87）——而前一句刚刚列举了三套 per-domain 技能包（HEP / GEM-builder+FBA / Monte Carlo+semiparametric）与 'a Claude Code subprocess with the requisite packages pre-installed'，这正是 per-domain 工程本身。论文没有说明 P01--P10 这 10 个 HEP 任务是否也来自该前作。因此审稿人无法判断 Table 3 里 HEP 列（以及'跨域'这条贡献）有多少属于本文、多少属于被采用的 ColliderAgent 与 Claude Code 的既有环境。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 85,
+          "excerpt": "The HEP agent is equipped with the FeynRules, MadGraph, and MadAnalysis skills drawn from \\citet{qiu2026endtoendarchitecturecolliderphysics}, which introduced the ColliderAgent architecture we directly adopt here;",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 87,
+          "excerpt": "This design is what enables \\system{} to reproduce experiments across heterogeneous scientific fields without per-domain engineering effort.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 86,
+          "excerpt": "Each specialized agent runs inside a Claude Code subprocess with the requisite packages pre-installed, so the top-level orchestrator requires no domain-specific knowledge.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 36,
+          "excerpt": "Further analysis shows that the modular design of \\system{} can connect to domain-specific scientific experiments, including high-energy theory.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 141,
+          "excerpt": "Beyond the two native banks, \\system{} supports 20+ domains through a profile-and-adapter system in \\texttt{researchclaw/domains/}.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "adopted_prior_work": "qiu2026endtoendarchitecturecolliderphysics (ColliderAgent), arXiv:2603.14553",
+          "per_domain_assets_listed": [
+            "HEP skill bundle (from prior work)",
+            "GEM-builder / FBA / flux-analyzer",
+            "Monte Carlo / semiparametric inference",
+            "per-domain Docker images",
+            "8 domain profiles + adapters (App. B)"
+          ],
+          "unstated": "provenance of the 10 HEP tasks P01-P10"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R1: \"Sec. 4.3 states that the ColliderAgent architecture is directly adopted from prior work, yet cross-domain coverage is claimed as a contribution of this paper in the abstract and introduction. The same paragraph claims 'no per-domain engineering effort' immediately after listing three per-domain skill bundles, per-domain Docker images and eight domain adapters. I cannot tell how much of the HEP column is this paper's contribution. Please mark the boundary explicitly and state whether the P01--P10 tasks are also taken from the prior work.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "In the contribution list, change the cross-domain item to: 'We show that the pipeline can be re-targeted to three scientific domains by swapping a domain profile and a skill bundle; the HEP skill bundle and agent architecture are taken from [qiu2026], and our contribution is the routing/adapter layer and the 20-task science-domain extension of ARC-Bench.' Replace 'without per-domain engineering effort' with 'with per-domain effort confined to a declarative profile plus a skill bundle, leaving the orchestrator unchanged.'",
+        "rationale_zh": "这条差异本身站得住（routing/adapter 层 + benchmark 扩展确实是本文的），只需要把边界标出来，代价是一句话。"
+      }
+    },
+    {
+      "id": "P3-DEF-009",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "conjunctive-novelty-claim",
+      "title_zh": "'no prior system combines ...' 这条合取式新颖性声明完全依赖 Table 1，而其单项组件已被未引用的近期系统各自覆盖",
+      "summary_zh": "全篇的新颖性最终落在一句合取声明上：'no prior system combines end-to-end execution with multi-agent debate, self-healing, anti-fabrication verification, and cross-run evolution'（related_work.tex:6），其唯一依据是 Table 1。合取声明的强度等于最弱的那一格，而 Table 1 至少有五格与竞品一手资料矛盾（见 P3-DEF-010/011）。此外，本文声称独占的两项能力在近 12 个月内已有公开系统覆盖但均未被引用：Kosmos (arXiv 2511.02824, 2025-11) 的核心卖点就是 'every conclusion ... can be traced to the specific lines of code or the specific passages in the scientific literature'，即结果与引文双重可追溯；Curie (arXiv 2502.16069) 提出 intra-/inter-agent rigor 模块专门保证实验可靠性与可复现；DOLPHIN (ACL 2025 main, arXiv 2501.03916) 是闭环 auto-research，含 'exception-traceback-guided debugging'（= self-healing）并把实验反馈注入下一轮 idea 生成（= 跨轮演化）。因此这条合取声明既没有系统性检索支撑（D2.7），也建立在不准确的对比表上。",
+      "locations": [
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "As summarized in Table~\\ref{tab:comparison}, no prior system combines end-to-end execution with multi-agent debate, self-healing, anti-fabrication verification, and cross-run evolution.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 36,
+          "excerpt": "Citation verification      & \\xmark & \\xmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 37,
+          "excerpt": "Result verification        & \\xmark & \\xmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "main.tex",
+          "line": 147,
+          "excerpt": "verifiable result reporting that prevents fabricated numbers and hallucinated citations",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "raw": {
+          "uncited_overlapping_systems": [
+            {
+              "name": "Kosmos / Edison Scientific",
+              "arxiv": "2511.02824",
+              "overlap": "every conclusion traceable to specific lines of code or literature passages; fully auditable reports",
+              "vs_claim": "Result verification / Citation verification columns"
+            },
+            {
+              "name": "Curie",
+              "arxiv": "2502.16069",
+              "overlap": "intra-agent rigor module enforcing reproducibility/plan-objective alignment; inter-agent rigor; experimentation benchmark",
+              "vs_claim": "Result verification"
+            },
+            {
+              "name": "DOLPHIN",
+              "arxiv": "2501.03916, ACL 2025 main",
+              "overlap": "closed-loop auto-research; exception-traceback-guided debugging; experiment feedback fed into next-round idea generation",
+              "vs_claim": "Self-healing repair + Cross-run evolution"
+            }
+          ]
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R3: \"The novelty argument reduces to a conjunction of five features that no single prior system has. Such claims are only as strong as the comparison table, and several cells here are wrong (see below). Moreover the individual features are not new: Kosmos already ties every reported conclusion to code output or literature, Curie targets rigour and reproducibility in automated experimentation, and DOLPHIN already closes the loop with traceback-guided debugging and feedback into the next round of ideation. None is cited.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Replace the conjunctive claim with a scoped one: 'To our knowledge, ARC-Bench is the first benchmark to score autonomous research systems on grounded result reporting at the experiment stage, and AutoResearchClaw is the first open-source pipeline to enforce a numeric registry as a hard drafting gate.' Add Kosmos, Curie and DOLPHIN to related work with a one-line delta each.",
+        "rationale_zh": "把合取声明换成可被单点核验的窄声明，同时补上三篇明显竞品，能同时修好 D2.7 与 D3.1。"
+      }
+    },
+    {
+      "id": "P3-DEF-010",
+      "tier": "P3-DEF",
+      "severity": "blocker",
+      "category": "competitor-capability-misstated",
+      "title_zh": "Table 1 能力矩阵逐格核实：至少 5 格与竞品一手资料（论文/官方仓库/配置文件）矛盾",
+      "summary_zh": "Table 1 用 ✓/✗/~ 断言他人系统是否具备某能力，这些是关于他人工作的事实陈述。逐格对照竞品的论文与官方仓库后，以下各格无法成立：\n(1) **Agent Lab × End-to-end pipeline = ✗**（且 caption 明写 'Agent Laboratory and ResearchAgent stop short'）——Agent Laboratory 论文原文：'This framework accepts a human-provided research idea and progresses through three stages—literature review, experimentation, and report writing'，官方仓库自述 'Agent Laboratory is an end-to-end autonomous research workflow'。按本表自己的定义（idea→paper）这格应为 ✓。\n(2) **AI Sci. v2 × Self-healing repair = ✗**——官方仓库 bfts_config.yaml 里就有 `max_debug_depth: 3`、`debug_prob: 0.5`，README 解释为 'the maximum number of times the agent will attempt to debug a failing node before abandoning that search path'。失败节点会被自动 debug，这就是自愈修复。\n(3) **AI Sci. v2 × Pivot/Refine loop = ✗**——同一 tree search 在 debug 预算耗尽后 'abandoning that search path' 并从其他分支继续（官方描述为可 backtrack），对应本文定义的 Pivot；improve 步对应 Refine。\n(4) **Agent Lab × Real experiment exec = ~ / Self-healing = ✗**——mle-solver 会编译并运行程序、按 reward 打分、编译失败时 'attempts to repair the code for up to 3 tries before returning an error'，并有 self-reflection。既非'部分执行'，也非'无修复'。\n(5) **AI Sci. v2 × Citation verification = ✗**——AI Scientist-v2 用 Semantic Scholar API 'to assess the novelty of generated ideas and to gather citations during the paper write-up phase'，并有独立的 `--model_citation` 参数。它的引文来自真实数据库检索而非自由生成；标 ✗ 至少需要在 caption 里定义'citation verification'是指 post-hoc 校验而非检索式接地。\n另外 (6) **AI Co-Sci. × Cross-run evolution = ✓** 与本文对该词的定义（跨 run 的持久 lesson store）不符——co-scientist 的 evolution agent 是在单次 session 的 Elo 锦标赛内演化假设。同一列里对自己用严格定义、对竞品用宽松定义，会被读成双标。",
+      "locations": [
+        {
+          "file": "sections/related_work.tex",
+          "line": 30,
+          "excerpt": "End-to-end pipeline        & \\cmark & \\tmark & \\xmark & \\tmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 16,
+          "excerpt": "Only AI Scientist v2 and \\system{} provide end-to-end autonomous execution from idea to paper; Agent Laboratory and ResearchAgent stop short.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 33,
+          "excerpt": "Self-healing repair        & \\xmark & \\xmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 34,
+          "excerpt": "\\textsc{Pivot}/\\textsc{Refine} loop & \\xmark & \\tmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 31,
+          "excerpt": "Real experiment exec.\\     & \\cmark & \\xmark & \\tmark & \\cmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 36,
+          "excerpt": "Citation verification      & \\xmark & \\xmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 35,
+          "excerpt": "Cross-run evolution        & \\xmark & \\cmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "Agent Laboratory~\\citep{schmidgall2025agentlab} and AI-Researcher~\\citep{tang2025airesearcher} automate portions of the pipeline",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "raw": {
+          "cell_audit": [
+            {
+              "cell": "Agent Lab x End-to-end",
+              "paper_says": "xmark",
+              "source": "arXiv:2501.04227 abstract: 'accepts a human-provided research idea and progresses through three stages--literature review, experimentation, and report writing'; github.com/SamuelSchmidgall/AgentLaboratory description: 'an end-to-end autonomous research workflow'",
+              "verdict": "should be cmark"
+            },
+            {
+              "cell": "AI Sci v2 x Self-healing repair",
+              "paper_says": "xmark",
+              "source": "github.com/SakanaAI/AI-Scientist-v2 bfts_config.yaml: 'max_debug_depth: 3', 'debug_prob: 0.5'; README: 'the maximum number of times the agent will attempt to debug a failing node before abandoning that search path'",
+              "verdict": "should be cmark or tmark"
+            },
+            {
+              "cell": "AI Sci v2 x Pivot/Refine",
+              "paper_says": "xmark",
+              "source": "same config: after max_debug_depth the agent abandons the search path and continues from other nodes; official description: progressive agentic tree search that can backtrack from dead ends",
+              "verdict": "should be tmark at minimum"
+            },
+            {
+              "cell": "Agent Lab x Real experiment exec",
+              "paper_says": "tmark",
+              "source": "mle-solver: compiles and runs the program, returns a score in [0,1], 'attempts to repair the code for up to 3 tries before returning an error'",
+              "verdict": "should be cmark; self-healing cell should be tmark"
+            },
+            {
+              "cell": "AI Sci v2 x Citation verification",
+              "paper_says": "xmark",
+              "source": "AI-Scientist-v2 README: 'The Semantic Scholar API is used to assess the novelty of generated ideas and to gather citations during the paper write-up phase'; CLI flag --model_citation",
+              "verdict": "contestable; requires a definition of 'citation verification' in the caption"
+            },
+            {
+              "cell": "AI Co-Sci x Cross-run evolution",
+              "paper_says": "cmark",
+              "source": "Towards an AI co-scientist: evolution agent refines top-ranked hypotheses inside an Elo tournament within a research session; no persistent cross-run lesson store",
+              "verdict": "inconsistent with this paper's own definition of the term"
+            }
+          ],
+          "sources": [
+            "https://arxiv.org/abs/2501.04227",
+            "https://github.com/SamuelSchmidgall/AgentLaboratory",
+            "https://github.com/SakanaAI/AI-Scientist-v2 (README.md, bfts_config.yaml)",
+            "https://arxiv.org/abs/2504.08066",
+            "https://storage.googleapis.com/coscientist_paper/ai_coscientist.pdf"
+          ]
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2（很可能就是被误标系统的作者）: \"Table 1 misrepresents our system. Agent Laboratory is explicitly an end-to-end workflow from a research idea to a written report, and its mle-solver repairs failing code for up to three attempts — yet the table marks 'End-to-end pipeline' as unsupported and 'Self-healing repair' as absent. Similarly, AI Scientist-v2's tree search has max_debug_depth and debug_prob parameters precisely for repairing failing nodes. A capability matrix that gets the competitors wrong is not evidence of novelty; I would ask the authors to re-verify every cell against the released code and to define each capability precisely in the caption.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Define each row in the caption in one clause (e.g. 'Self-healing repair = automatic diagnosis and re-execution after a runtime failure, with partial artefacts preserved'), then re-audit every cell against the released code and cite the specific artefact (file/flag/section) supporting each non-obvious mark in a footnote. Corrections implied by the audit: Agent Lab End-to-end xmark->cmark, Agent Lab Real-exec tmark->cmark, Agent Lab Self-healing xmark->tmark, AI Sci v2 Self-healing xmark->tmark, AI Sci v2 Pivot/Refine xmark->tmark. If the distinguishing property is 'preserves partial results and re-plans rather than abandoning the branch', say so in the row name.",
+        "rationale_zh": "本文与对手的真实差异更可能是'失败后保留部分产物并重新规划'而不是'对手完全不修复'；把行名改准，既保住差异，又不再错误陈述他人系统。"
+      }
+    },
+    {
+      "id": "P3-DEF-011",
+      "tier": "P3-DEF",
+      "severity": "blocker",
+      "category": "competitor-capability-misstated",
+      "title_zh": "对 AIDE 的错误描述被写进引言，并直接充当主实验结果的因果解释",
+      "summary_zh": "引言写 'systems such as AIDE ML~\\citep{aide2025} stop after an execution failure and discard partial results that could still be informative'（intro.tex:14），§4.2 进一步把主表最关键的差距归因于此：'AIDE-ML's execution success rate (0.415) is substantially lower, reflecting its lack of self-healing: experiments that encounter runtime errors are discarded rather than repaired'（experiment.tex:71）。但 AIDE 的全部方法论就是一棵解空间搜索树，其三个核心算子正是 draft / **debug** / improve：官方论文与仓库描述为 'New nodes branch off when the agent drafts a fresh solution from the empty root, **debugs a broken script**, or refines a working one'，'The search policy ... determining whether to draft, debug, or improve'。同理，相关工作说 The AI Scientist 系列 'abort on execution failures'（related_work.tex:6）也与 AI Scientist-v2 的 max_debug_depth/debug_prob 配置矛盾。这条比 Table 1 的任何一格都严重，因为它不只是表格里的一个标记：**主实验结论的因果解释建立在一个关于竞品的错误事实上**。如果 AIDE 确实会 debug，那么 0.415 vs 0.562 的差距就需要另一个解释（例如修复预算、失败诊断粒度、或 breadth-first 条件排序），而论文没有给。另注：AIDE-ML 是两个主基线之一，却根本没有出现在 Table 1 中。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 71,
+          "excerpt": "AIDE-ML's execution success rate (0.415) is substantially lower, reflecting its lack of self-healing: experiments that encounter runtime errors are discarded rather than repaired.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 14,
+          "excerpt": "On execution robustness, systems such as AIDE ML~\\citep{aide2025} stop after an execution failure and discard partial results that could still be informative.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "The AI Scientist~\\citep{lu2024aiscientist} and its successor~\\citep{yamada2025aiscientistv2} generate complete papers from ideas but rely on single-agent reasoning, abort on execution failures, and start each run from scratch.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 20,
+          "excerpt": "\\begin{tabularx}{\\textwidth}{@{}lCCCCCC@{}}",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "raw": {
+          "aide_source": "AIDE: AI-Driven Exploration in the Space of Code, arXiv:2502.13138 (cited by the paper as aide2025); github.com/WecoAI/aideml",
+          "aide_quote": "New nodes branch off when the agent drafts a fresh solution from the empty root, debugs a broken script, or refines a working one with new ideas; the search policy determines whether to draft, debug, or improve",
+          "ai_scientist_v2_quote": "bfts_config.yaml: max_debug_depth: 3, debug_prob: 0.5; README: 'The maximum number of times the agent will attempt to debug a failing node before abandoning that search path.'",
+          "consequence": "the stated causal explanation for the main result (0.415 vs 0.562/0.578 on CE) rests on a false premise about the baseline",
+          "table1_omission": "AIDE-ML is a primary baseline (experiment.tex:17) but is absent from Table 1"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R1: \"The paper's explanation of its main result is that AIDE lacks self-healing and 'discards rather than repairs' failed experiments. This is factually incorrect: debugging is one of AIDE's three core tree-search operators, and AI Scientist-v2 exposes max_debug_depth/debug_prob for exactly this purpose. Since the causal story behind Table 2 rests on this claim, I do not currently believe the attribution of the CE gap to self-healing. The authors should either report the baselines' repair budgets and failure traces, or attribute the gap to a mechanism that actually differs.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Rewrite intro.tex:14 as: 'On execution robustness, tree-search systems such as AIDE [aide2025] do debug failing nodes, but abandon a branch once a fixed debug depth is exhausted and do not preserve partial results for downstream analysis.' Rewrite experiment.tex:71 to attribute the CE gap to a measured difference (e.g. repair budget actually consumed, fraction of runs recovered after k attempts) and report that measurement for both baselines. Add AIDE-ML as a column in Table 1.",
+        "rationale_zh": "真实差异（分支放弃策略 + 部分产物保留 + breadth-first 条件排序）依然对本文有利，但必须用竞品真实行为来陈述，并给出支持因果归因的测量。"
+      }
+    },
+    {
+      "id": "P3-DEF-012",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "uncited-comparison-column",
+      "title_zh": "Table 1 的 ResearchAgent 一列全文没有任何引用，系统身份无法确定；其 open-source ✓ 与 debate ✗ 也无据",
+      "summary_zh": "Table 1 有一整列叫 'Research-Agent'，caption 还断言 'Agent Laboratory and ResearchAgent stop short'，但正文（含相关工作三段）从头到尾没有一处 \\cite 过它；references.bib 里有 baek2024researchagent 却是未被引用的条目。'ResearchAgent' 是一个高度歧义的名字，读者无法确定被评价的是哪个系统。若指 Baek et al. (arXiv:2404.07738)，则该列还有两个问题：(a) 'Multi-agent debate = ✗' 与其核心机制矛盾——该文摘要写 'mimicking a scientific approach to improving ideas with peer discussions, we leverage multiple LLM-based ReviewingAgents that provide reviews and feedback via iterative revision processes'；(b) 'Open-source = ✓' 找不到公开代码仓库支撑。对一个从未引用、身份不明的系统做十一项能力断言，是 D3.7 与 D3.5 同时命中。",
+      "locations": [
+        {
+          "file": "sections/related_work.tex",
+          "line": 27,
+          "excerpt": "  & \\textbf{\\thead{Research-\\\\ Agent}}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 16,
+          "excerpt": "Only AI Scientist v2 and \\system{} provide end-to-end autonomous execution from idea to paper; Agent Laboratory and ResearchAgent stop short.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 32,
+          "excerpt": "Multi-agent debate         & \\xmark & \\cmark & \\xmark & \\xmark & \\xmark & \\cmark \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 40,
+          "excerpt": "Open-source                & \\cmark & \\xmark & \\cmark & \\cmark & \\cmark & \\cmark \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "references.bib",
+          "line": 294,
+          "excerpt": "@article{baek2024researchagent,\n  title={Research{A}gent: Iterative Research Idea Generation over Scientific Literature with Large Language Models},",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "recompute": "grep -ro 'baek2024researchagent' sections/ | wc -l = 0 (bib entry present at references.bib:294, never cited).",
+        "raw": {
+          "researchagent_abstract": "arXiv:2404.07738 — 'mimicking a scientific approach to improving ideas with peer discussions, we leverage multiple LLM-based ReviewingAgents that provide reviews and feedback via iterative revision processes'",
+          "code_release": "no public repository located",
+          "table_cells_asserted": 11
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R3: \"Table 1 contains a column for 'ResearchAgent' that is never cited anywhere in the paper. I cannot tell which system is being characterised. If this is Baek et al. (2024), then marking 'multi-agent debate' as unsupported contradicts their ReviewingAgents mechanism, and the open-source mark needs a pointer to a repository.\"",
+      "fix": {
+        "kind": "mechanical",
+        "proposed": "Add \\citep{baek2024researchagent} to the ResearchAgent column header and one sentence in Sec. 2 relating it to this work; re-check the 'Multi-agent debate' and 'Open-source' cells for that column, or drop the column and add AIDE-ML in its place (AIDE-ML is a primary baseline and is currently missing from the table).",
+        "rationale_zh": "把从未引用的列换成实际做了对比的基线（AIDE-ML），既修好 D3.7 也提高表格的信息量。"
+      }
+    },
+    {
+      "id": "P3-DEF-013",
+      "tier": "P3-DEF",
+      "severity": "blocker",
+      "category": "contrary-evidence-omitted",
+      "title_zh": "与本文结论直接相反的实证工作躺在 .bib 里却零引用：'Why LLMs Aren't Scientists Yet'",
+      "summary_zh": "references.bib:609 收录了 trehan2026whyllm, 'Why LLMs Aren't Scientists Yet: Lessons from Four Autonomous Research Attempts'（arXiv:2601.03315, 2026-01），但全文一次都没有引用。该文正是对本文这类流水线（six LLM agents mapped to stages of the scientific workflow）的四次端到端尝试的实证记录：三次在实现或评估阶段失败，并总结出六种反复出现的失败模式（training-data default bias、implementation drift under execution pressure、memory/context degradation over long horizons、overexcitement that declares success despite obvious failures、insufficient domain intelligence、weak scientific taste）。其中 'overexcitement that declares success despite obvious failures' 与本文 T10 案例研究里发现的 silent semantic collapse 是同一现象，'weak scientific taste' 直指本文用 rubric 预设研究问题所回避掉的那部分。同类反向证据还有 MLR-Bench（NeurIPS 2025 D&B，arXiv:2505.19955）报告 'current coding agents frequently (e.g., in 80% of the cases) produce fabricated or invalidated experimental results'——这既是对本文 verification 机制必要性的支持，也是对'一个 LLM 评委的标量分数可以代表科研质量'的直接质疑，同样未引用。D3.6 规定系统性忽略反向工作为 blocker；这里的加重情节是：该文献已经在参考文献里，说明作者知道它的存在。",
+      "locations": [
+        {
+          "file": "references.bib",
+          "line": 609,
+          "excerpt": "@article{trehan2026whyllm,\n  title={Why {LLMs} Aren't Scientists Yet: Lessons from Four Autonomous Research Attempts},\n  author={Trehan, Dhruv and others},\n  journal={arXiv preprint arXiv:2601.03315},\n  year={2026}\n}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "On the evaluation side, ScienceAgentBench~\\citep{tian2024scienceagentbench}, MLE-bench~\\citep{chan2024mlebench}, and DISCOVERYWORLD~\\citep{jansen2024discoveryworld} reveal that even the best systems solve fewer than 40\\% of tasks.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/conclusion.tex",
+          "line": 6,
+          "excerpt": "establishing that precise human-AI collaboration is a more effective paradigm than either extreme",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 192,
+          "excerpt": "Full-Auto completes a manuscript, but all eight cross-validation strategies collapse to identical zero-bias outputs.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "recompute": "grep -ro 'trehan2026whyllm' sections/ | wc -l = 0; bib entry exists at references.bib:609.",
+        "raw": {
+          "trehan_findings": "four end-to-end attempts with a six-agent pipeline; three failed during implementation or evaluation; six recurring failure modes including 'overexcitement that declares success despite obvious failures' and 'weak scientific taste in experimental design'",
+          "mlr_bench": "arXiv:2505.19955 (NeurIPS 2025 D&B): 'current coding agents frequently (e.g., in 80% of the cases) produce fabricated or invalidated experimental results'",
+          "both_uncited": true
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"The related work presents a uniformly optimistic picture of autonomous research systems. Work documenting the opposite — Trehan et al., 'Why LLMs Aren't Scientists Yet' (three of four end-to-end attempts failed; six recurring failure modes including declaring success despite obvious failure), and MLR-Bench (80% of agent runs produce fabricated or invalidated results) — is not discussed. The first of these is in the submitted bibliography but never cited. The paper's own T10 case study reproduces exactly the failure mode Trehan et al. describe, which makes the omission harder to excuse.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Add a short paragraph to Sec. 2: 'Negative results temper these claims. Trehan et al. [trehan2026whyllm] report that three of four end-to-end autonomous research attempts failed during implementation or evaluation, identifying overexcited success declarations and weak experimental taste as recurring modes; MLR-Bench [mlrbench2025] finds fabricated or invalidated results in ~80% of agent runs. Our verification gate and the T10 case study in Sec. 4.5 are direct responses to these failure modes.'",
+        "rationale_zh": "把反向证据主动接入，反而能把 verification 机制的必要性论证得更强；藏着不引则是审稿人最容易抓的把柄。"
+      }
+    },
+    {
+      "id": "P3-DEF-014",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "missing-related-work",
+      "title_zh": "ARC-Bench 未对比 PaperBench / MLR-Bench / EXP-Bench，rubric 方法论与前者同构",
+      "summary_zh": "相关工作在评测侧只引了 ScienceAgentBench、MLE-bench、DISCOVERYWORLD（related_work.tex:6），三者都不是'用分层 rubric + LLM 评委评研究智能体产出'这一类。审稿人会立刻想到的三个直接同类基准全部缺席：\n(1) **PaperBench**（ICML 2025, arXiv:2504.01848）：把任务分层分解成 rubric 树，叶节点为单一可判定标准并按重要性手工赋权，用 LLM judge 逐叶打分后加权上卷成单一分数。ARC-Bench 的 'hierarchical tree of 8--11 leaf criteria ... Each leaf carries a weight in [0,100] summing to 100 ... overall = Σ w_ℓ s_ℓ / 100'（appendix.tex:469-479）与之在方法论上几乎同构，却没有引用，无法说明差异（我方是 8--11 叶 vs PaperBench 的 8316 叶、我方判分数在 [0,1] 连续 vs PaperBench 0/1）。\n(2) **MLR-Bench**（NeurIPS 2025 D&B, arXiv:2505.19955）：201 个任务 + MLR-Judge（LLM 评委 + 评审 rubric，并做过人类评审一致性验证）+ 四阶段 agent scaffold。这是 ARC-Bench 定位上最直接的竞品，并且已经把'LLM 评委需要人类一致性验证'这件事做完了——本文附录 C.2 只报了两个 agent reviewer 之间的 |Δ|<0.10，没有报与人类的一致性数值。\n(3) **EXP-Bench**（arXiv:2505.24785）：461 个来自 51 篇顶会论文的实验任务，给定研究问题与不完整起始代码，评 design/implementation/execution/analysis——正是 ARC-Bench 的 experiment-stage 模式。\n此外 InnovatorBench、MLGym、RE-Bench 同属该问题域。缺这些不是漏引风格问题：一篇 benchmark 论文若不说明与同类基准的差异（任务来源、难度、判分方式、评委验证），审稿人无法判断新基准的必要性。",
+      "locations": [
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "On the evaluation side, ScienceAgentBench~\\citep{tian2024scienceagentbench}, MLE-bench~\\citep{chan2024mlebench}, and DISCOVERYWORLD~\\citep{jansen2024discoveryworld} reveal that even the best systems solve fewer than 40\\% of tasks.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 469,
+          "excerpt": "Each topic ships with a \\texttt{rubrics/T*.json} defining a hierarchical tree of 8--11 leaf criteria across three categories:",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 475,
+          "excerpt": "Each leaf carries a weight in $[0,100]$ summing to~100 within its category and a score in $[0,1]$.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 511,
+          "excerpt": "Mean per-leaf $|\\Delta| < 0.10$ across the audited subset, with disagreements concentrated on partial-implementation cases where code reading is ambiguous.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read + web",
+        "raw": {
+          "missing_benchmarks": [
+            {
+              "name": "PaperBench",
+              "venue": "ICML 2025",
+              "arxiv": "2504.01848",
+              "why": "hierarchical rubric tree with manually weighted nodes, per-leaf LLM judge (SimpleJudge), weighted roll-up to a single score — same methodology as ARC-Bench's rubric aggregation"
+            },
+            {
+              "name": "MLR-Bench",
+              "venue": "NeurIPS 2025 D&B",
+              "arxiv": "2505.19955",
+              "why": "201 open-ended ML research tasks + MLR-Judge (LLM reviewers with rubrics, validated against expert reviewers) + 4-stage agent scaffold; closest competitor to ARC-Bench"
+            },
+            {
+              "name": "EXP-Bench",
+              "arxiv": "2505.24785",
+              "why": "461 experiment-stage tasks from 51 papers; grades design/implementation/execution/analysis given a research question and starter code"
+            },
+            {
+              "name": "InnovatorBench",
+              "arxiv": "2510.27598"
+            },
+            {
+              "name": "Curie experimentation benchmark",
+              "arxiv": "2502.16069"
+            }
+          ],
+          "judge_validation_gap": "App. C.2 reports agent-vs-agent per-leaf |delta| < 0.10 but gives no human-agreement statistic, while MLR-Judge reports validated agreement with expert reviewers"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R1: \"As a benchmark contribution, ARC-Bench is not positioned against the obvious recent alternatives. PaperBench (ICML'25) already established the hierarchical weighted rubric + per-leaf LLM judge methodology that ARC-Bench uses; MLR-Bench (NeurIPS'25 D&B) already provides 201 open-ended ML research tasks with a rubric-based LLM judge validated against human reviewers; EXP-Bench provides 461 experiment-stage tasks derived from published papers. None is cited. Why do we need 25 sklearn-scale topics in addition? And why is the judge validated only against a second LLM rather than against human experts, as MLR-Judge is?\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Add an 'Evaluating research agents' paragraph to Sec. 2 covering PaperBench, MLR-Bench, EXP-Bench (and optionally MLGym/RE-Bench/InnovatorBench), stating for each: task source, judging method, and what ARC-Bench adds (per-topic hypothesis verdicts and number-grounding leaves, CPU-scale reproducibility, and a shared experiment-stage protocol usable by systems that cannot write papers). Report a human-agreement statistic for the strict judge alongside the agent-agent delta.",
+        "rationale_zh": "ARC-Bench 的真正差异（把'结论是否被实测支持'做成可判定叶节点）是站得住的，但只有在与 PaperBench/MLR-Bench 并列时才看得出来。"
+      }
+    },
+    {
+      "id": "P3-DEF-015",
+      "tier": "P3-DEF",
+      "severity": "major",
+      "category": "known-validity-threat-suppressed",
+      "title_zh": "作者自己写下的六条评委效度威胁（含'本系统的优势可能来自与 rubric 的文风对齐'）在投稿版本中被整段注释掉",
+      "summary_zh": "sections/appendix.tex 第 391--406 行是一整节被 % 注释掉的 'Judge and Rubric Issues'，逐条列出了本文评委的已知缺陷，其中第 (vi) 条直接质疑主结果的效度：'RC writeups are usually rubric-aware replication reports while AISv2 writeups are research-narrative-style. Some of RC's apparent advantage may reflect adapter/finalizer style alignment with the rubric. A blind, normalized-writeup or metric-table-only judge would be a useful ablation.' 另有 (ii) results-only 判分无法验证协议正确性、(v) 8000 字符截断会对 AISv2 的 schema 造成额外惩罚等。这些都是作者自己识别出的、指向'54.7% 可能部分来自文风对齐而非能力差异'的威胁，却没有进入投稿正文。同一文件里还有整节 ARC-Bench per-topic 结果（第 342--389 行）与 9-topic audit 子集被注释掉。这直接影响 D1.5：如果主判据的已知效度威胁被作者自己记录后移除，那么'measured by' 这一项即便补进引言也不足以支撑结论。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 406,
+          "excerpt": "% \\paragraph{(vi) Style bias.} RC writeups are usually rubric-aware replication reports while AISv2 writeups are research-narrative-style. Some of RC's apparent advantage may reflect adapter/finalizer style alignment with the rubric. A blind, normalized-writeup or metric-table-only judge would be a useful ablation.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 391,
+          "excerpt": "% \\section{Judge and Rubric Issues}\n% \\label{app:judge-issues}",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 404,
+          "excerpt": "% \\paragraph{(v) Truncation and schema mismatch.} The judge's \\texttt{\\_SUMMARY\\_CAP} of 8000 characters can truncate complex topics. ... It would also reduce schema-mismatch penalties for AISv2, since AISv2 uses \\texttt{baseline} and \\texttt{research\\_best} naming while RC uses ARC-style condition keys.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 67,
+          "excerpt": "\\system{} (CoPilot) achieves the highest overall strict score (0.648), outperforming AI Scientist v2 (0.419) by 54.7\\%",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "commented_blocks": [
+            {
+              "lines": "342-389",
+              "content": "ARC-Bench per-topic results (9-topic audit subset), sanity-check topics, source-run manifest"
+            },
+            {
+              "lines": "391-406",
+              "content": "Judge and Rubric Issues: (i) README-to-summary traceability, (ii) implementation-truth blind spot, (iii) seed dispersion thresholds, (iv) topic-difficulty calibration, (v) truncation and schema mismatch penalising AISv2, (vi) style bias favouring the proposed system"
+            }
+          ],
+          "submitted_version_contains": "no discussion of judge validity threats"
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R2: \"The evaluation rests entirely on an LLM judge, yet the submission contains no analysis of judge validity: no human-agreement number, no blind/normalised-writeup ablation, no discussion of whether the proposed system's outputs are stylistically aligned with the rubric it is graded against. Given that the system's finaliser writes rubric-shaped reports while the baseline writes narrative papers, style alignment is the most obvious alternative explanation for a 54.7% gap and must be ruled out.\"（若审稿人拿到源码包并看到被注释掉的段落，这条会升级为诚信质疑）",
+      "fix": {
+        "kind": "requires-experiment",
+        "proposed": "Restore the 'Judge and Rubric Issues' section (or a condensed version) into the appendix, and run the ablation it proposes: re-grade all systems with (a) a metric-table-only judge and (b) a style-normalised writeup, reporting whether the ranking is preserved. Report human-expert agreement for the strict judge as a number, not as 'human expert scores follow the same protocol'.",
+        "rationale_zh": "这条威胁是作者自己发现的，补一个 metric-table-only 复评成本不高；如果排名保持，54.7% 才真正可辩护；如果不保持，早发现好过被审稿人发现。"
+      }
+    },
+    {
+      "id": "P3-DEF-016",
+      "tier": "P3-DEF",
+      "severity": "minor",
+      "category": "paper-type-positioning",
+      "title_zh": "定位选择提示：一篇系统 + benchmark 论文，却用单一 LLM 评委的标量分数当主指标，被写成了刷榜论文",
+      "summary_zh": "这不是缺陷，是一个会决定审稿人用哪套标准的**定位选择**，因此只报 minor + 提示。论文实际上同时是系统论文（23 阶段流水线、沙箱、七种 HITL 模式、20+ 域适配）和 benchmark 论文（ARC-Bench 25+20 任务）。但摘要、引言、结论三处的主线都是一个标量比较：'outperforms AI Scientist v2 by 54.7%'（main.tex:148、intro.tex:34、conclusion.tex:6）。系统论文的自然评价维度是'能不能用、在多广的范围内可用、失败模式是什么、代价多少'——这些证据论文其实都有，但被放在附录（附录 F 的 stage-17 失败分类、附录 G 的 4/5 与 3/5 编译通过率、Ethics 里的 $3--15 单次成本、Table 5 的 completion 列），而不是主线。反过来，被放在主线的 54.7% 只有一个 backbone、一个评委、25 个 CPU 级任务的支撑。建议作者自觉选择：若定位为系统论文，把 completion rate / 失败分类 / 成本 / 跨域可用性提到主线，把 54.7% 降为一个佐证；若定位为 benchmark 论文，则需按 P3-DEF-014 与同类基准正面比较，并补评委效度验证。",
+      "locations": [
+        {
+          "file": "main.tex",
+          "line": 148,
+          "excerpt": "On \\bench, a 25-topic experiment-stage benchmark, \\system{} outperforms AI Scientist v2 by 54.7\\%.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/conclusion.tex",
+          "line": 6,
+          "excerpt": "On \\bench, \\system{} outperforms AI Scientist v2 by 54.7\\%, with the largest gains on result analysis",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 700,
+          "excerpt": "11 of 13 invalid canonical HITL runs fail at stage 17 (\\texttt{paper\\_draft}).",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 734,
+          "excerpt": "Local single-pass \\texttt{pdflatex} compile rate across the 10 audited\ndeliverables: 4/5 step-by-step pass, 3/5 full-auto pass.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 764,
+          "excerpt": "In our current implementation, each run costs approximately \\$3--15 in LLM usage",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "raw": {
+          "paper_type": "system + benchmark",
+          "headline_metric": "single scalar from one LLM judge, one backbone, 25 CPU-scale topics",
+          "usability_evidence_present_but_in_appendix": [
+            "failure taxonomy (App. F)",
+            "compile-pass rate (App. G)",
+            "cost per run (Ethics)",
+            "completion column (Table 5)",
+            "20+ domain profiles (App. B)"
+          ]
+        }
+      },
+      "verdict": "",
+      "reviewer_impact_zh": "R3: \"I am unsure how to grade this submission. Read as a systems paper, the interesting evidence (completion rates, failure taxonomy, cost, breadth of domains, compile-readiness) is all in the appendix, and the main claim is a leaderboard delta. Read as a benchmark paper, ARC-Bench is not compared with existing research-agent benchmarks and its judge is not validated against humans. The authors should pick one framing and lead with the corresponding evidence.\"",
+      "fix": {
+        "kind": "judgment",
+        "proposed": "Decide the framing explicitly in Sec. 1. If systems: promote completion rate, failure taxonomy, per-run cost and domain breadth into Sec. 4, and present Table 2 as one of several usability signals. If benchmark: promote ARC-Bench's design rationale and judge validation into the main text and compare with PaperBench/MLR-Bench/EXP-Bench.",
+        "rationale_zh": "CRUCIBLE 不替作者决定方向；但这个选择会直接决定审稿人用哪套 rubric，必须由作者自觉做出。"
+      }
+    }
+  ]
+}

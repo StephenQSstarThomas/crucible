@@ -1,0 +1,1195 @@
+{
+  "tier": "P2-RIGOR",
+  "rubric": "rubrics/P2-RIGOR.md",
+  "paper_repo": "/tmp/claude-408529/-home-shiqiu/9dce2e50-09c8-4041-b751-aa0e806cb57e/scratchpad/sample",
+  "facts_dir": "/tmp/claude-408529/-home-shiqiu/9dce2e50-09c8-4041-b751-aa0e806cb57e/scratchpad/final/facts",
+  "collectors_used": [
+    "bin/tables.py",
+    "agent-read",
+    "facts/numbers.json",
+    "facts/forensics.json"
+  ],
+  "evidence_dir_used": false,
+  "counts": {
+    "findings_total": 20,
+    "blocker": 5,
+    "major": 11,
+    "minor": 4,
+    "nit": 0,
+    "passed_items": 13
+  },
+  "findings": [
+    {
+      "id": "P2-RIGOR-001",
+      "severity": "blocker",
+      "category": "incomparable-denominators",
+      "title_zh": "HITL 主表七个 mode 的 Mean Q / Accept 建立在不同的有效子集上，行间不可比",
+      "summary_zh": "Table~2 (tab:hitl-summary) 各 mode 的 Valid 分别是 8/10, 10/10, 8/10, 7/10, 10/10, 8/10, 6/10，而 Mean Q 与 Accept 都只在各自的 valid 子集上计算。这意味着七行数字来自七个不同的 topic 集合，边际均值之间没有可比性。\n\n更严重的是：valid 与否本身是 post-treatment 的结果变量（受 mode 影响），按 valid 条件化等于对撞变量（collider）条件化，会引入选择偏差。论文自己承认失败 topic 系统性更难——'Post-Experiment ... is valid on only 6/10 topics, because late-stage HITL cannot generate experimental evidence from nothing'——这正说明幸存子集的难度分布在各 mode 之间不同。\n\n论文其实做过配对分析（'On matched topics, CoPilot beats Full-Auto by +3.21 and beats Step-by-Step by +2.16'），但 (a) 没有给出 matched topic 的数量，(b) 主表、摘要（main.tex:149）和结论（conclusion.tex:6）用的仍是不可比的边际数 87.5% / 25% / 50%。\n\n附带一处与该列直接冲突的表述：experiment.tex:138 称 Gate-Only 'is the only mode achieving 10/10 validity'，但同一张表里 Step-by-Step 也是 10/10。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 56,
+          "excerpt": "Full-Auto        & 8/10  & 4.03          & 25.0\\%          & 0  \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 58,
+          "excerpt": "\\textbf{CoPilot} & 8/10  & \\textbf{7.27} & \\textbf{87.5\\%} & 6 \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 62,
+          "excerpt": "Post-Experiment  & 6/10  & 5.08          & 50.0\\%          & 3  \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 136,
+          "excerpt": "Post-Experiment produces some of the strongest individual papers but is valid on only 6/10 topics, because late-stage HITL cannot generate experimental evidence from nothing.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 133,
+          "excerpt": "On matched topics, CoPilot beats Full-Auto by $+3.21$ and beats Step-by-Step by $+2.16$.",
+          "role": "supports"
+        },
+        {
+          "file": "main.tex",
+          "line": 149,
+          "excerpt": "A human-in-the-loop ablation across seven intervention modes reveals that precise, targeted collaboration at high-leverage decision points consistently outperforms both full autonomy and exhaustive step-by-step oversight.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/conclusion.tex",
+          "line": 6,
+          "excerpt": "targeted intervention at high-leverage decision points (CoPilot, 87.5\\% accept rate) consistently outperforms both full autonomy (25\\%) and exhaustive step-by-step oversight (50\\%)",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 138,
+          "excerpt": "Gate-Only (3 interventions) raises accept rate from 25\\% to 50\\% and is the only mode achieving 10/10 validity.",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py + agent-read",
+        "recompute": "分母还原（percent x valid）：\n  Full-Auto      25.0% x 8  = 2  -> 2/8\n  Gate-Only      50.0% x 10 = 5  -> 5/10\n  CoPilot        87.5% x 8  = 7  -> 7/8\n  Thorough       42.9% x 7  = 3.003 -> 3/7\n  Step-by-Step   50.0% x 10 = 5  -> 5/10\n  Pre-Experiment 37.5% x 8  = 3  -> 3/8\n  Post-Experiment 50.0% x 6 = 3  -> 3/6\n七行的分母是 {8,10,8,7,10,8,6}，没有两两一致的保证。\n\nintent-to-treat 重算（把 invalid run 计入分母；quality 量表为 1-10，故用 1.0 作为下界填补，另给 0.0 作为敏感性）：\n  accept(ITT, /10):  Full-Auto 2/10=20.0%  Gate-Only 5/10=50.0%  CoPilot 7/10=70.0%\n                     Thorough 3/10=30.0%   Step-by-Step 5/10=50.0%  Pre-Exp 3/10=30.0%\n                     Post-Experiment 3/10=30.0%  (论文印 50.0%)\n  Mean Q(ITT, imp=1.0) = (Q*valid + 1.0*(10-valid))/10:\n     CoPilot (7.27*8+1*2)/10 = 6.016 ; Step-by-Step 5.190 ; Gate-Only 5.030 ;\n     Thorough (4.86*7+3)/10 = 3.702 ; Pre-Exp (4.28*8+2)/10 = 3.624 ;\n     Post-Experiment (5.08*6+4)/10 = 3.448 ; Full-Auto (4.03*8+2)/10 = 3.424\n  imp=0.0 时 Post-Experiment = 5.08*6/10 = 3.048，排名从第 3 掉到第 7（最后一名）。\n结论：Post-Experiment 与 Thorough 的排名完全由分母口径决定；论文 §4.4 '(Post-Experiment) produces some of the strongest individual papers' 与 'Gate-Only ... attractive operating point' 两处结论在 ITT 口径下反转。\n\nGate-Only 唯一 10/10 的说法：表中 Step-by-Step 同为 10/10，'only' 不成立。",
+        "raw": {
+          "table": "tab:hitl-summary",
+          "valid": [
+            8,
+            10,
+            8,
+            7,
+            10,
+            8,
+            6
+          ],
+          "mean_q": [
+            4.03,
+            5.03,
+            7.27,
+            4.86,
+            5.19,
+            4.28,
+            5.08
+          ],
+          "accept_pct": [
+            25.0,
+            50.0,
+            87.5,
+            42.9,
+            50.0,
+            37.5,
+            50.0
+          ]
+        },
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Table 2 is the paper's central evidence for the claim that targeted HITL beats both extremes, yet each row is averaged over a different subset of topics (Valid ranges from 6/10 to 10/10). Because validity is itself an outcome of the intervention regime, conditioning the quality mean and accept rate on validity is conditioning on a post-treatment variable; the reported marginal means are therefore not comparable across rows. Post-Experiment is credited with a 50% accept rate on 6 surviving topics while CoPilot's 87.5% comes from a different set of 8. The authors clearly have the matched-topic data (they quote +3.21 and +2.16) but do not report the matched sample size, matched accept rates, or the matched table. As it stands I cannot verify the paper's main claim.\" 这条会直接进入 weakness 第一条，并可能被用作 'the central claim is not supported by the reported analysis' 的拒稿理由。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "不需要补跑任何实验——所有 70 个 run 的结果已经存在。把主表换成 (a) 全 mode 交集 topic 上的配对表（给出 matched N），并把 (b) 全 10 topic 的 intent-to-treat 表作为主结果、conditional-on-valid 表作为附录敏感性分析。摘要与结论必须改用配对或 ITT 数字。",
+        "proposed": "Replace Table 2 with two panels. Panel A (primary): intent-to-treat over all 10 topics, with invalid runs scored at the scale minimum, so every row has denominator 10. Panel B: paired comparison restricted to the K topics on which all seven modes produced a valid run, reporting mean paired differences with a matched N. Move the conditional-on-valid means to the appendix and label them explicitly: \"means conditional on validity are not comparable across modes because validity is affected by the intervention regime.\" In the abstract and conclusion, replace \"87.5% accept rate ... versus 25% and 50%\" with the paired estimate and its matched sample size. Also correct \"Gate-Only ... is the only mode achieving 10/10 validity\": Step-by-Step also achieves 10/10."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-002",
+      "severity": "blocker",
+      "category": "conditioning-on-completion",
+      "title_zh": "组件消融的 Quality 只在 completed topic 上取均值，\"debate 是最大质量贡献者\"在补齐未完成 run 后反转",
+      "summary_zh": "Table~5 (tab:component-abl) 的 caption 明确写 'Quality is the mean of the selected best scores over completed topics'。各行 Completion 为 10/10, 10/10, 6/10, 9/10, 10/10, 4/10，因此 Quality 列同样是在六个不同子集上算的。论文据此断言 'Multi-agent debate is the largest quality contributor ($-1.37$, $p{=}0.003$)'，并把 self-healing 归类为 'the largest completion contributor'（而非质量贡献者）。\n\n但论文自己在同一段写道 'surviving topics are disproportionately easier'——既然承认幸存子集更容易，w/o Self-Healing 的 4.83 就是在一个被挑简单了的 6 个 topic 上算的，与 Full 的 10 个 topic 不可比。把未完成 run 按量表下界补齐后，self-healing 的质量损失（-2.32）反而大于 debate（-1.37），论文的机制排序结论直接反转。\n\n同一张表的 Accept 列内部分母口径还不自洽：caption 说 Accept 只数 completed 输出，但 w/o Evolution 行 Completion=9/10 而 Accept 写作 2/10（应为 x/9），w/o Self-Healing 用 1/6、w/o Debate \\& Healing 用 0/4，同一列混用三种分母。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 152,
+          "excerpt": "Completion counts topics for which at least one rerun completed a manuscript. Quality is the mean of the selected best scores over completed topics, and Accept counts selected completed outputs with score $\\ge 5$.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 161,
+          "excerpt": "\\quad w/o Self-Healing      & 6/10           & 4.83          & 1/6                       & \\xmark \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 162,
+          "excerpt": "\\quad w/o Evolution         & 9/10           & 5.14          & 2/10                      & \\xmark \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 170,
+          "excerpt": "Multi-agent debate is the largest quality contributor ($-1.37$, $p{=}0.003$): without the Pragmatist filtering infeasible hypotheses and the Skeptic scrutinizing weak findings, both hypothesis quality and result analysis degrade. Self-healing is the largest completion contributor: removing it reduces completion from 10/10 to 6/10 even with three attempts per topic, because the first unrecovered runtime error terminates the run and surviving topics are disproportionately easier.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/conclusion.tex",
+          "line": 6,
+          "excerpt": "Component ablation confirms that the mechanisms are complementary: debate drives quality, self-healing drives completion, verification enforces integrity",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py + agent-read",
+        "recompute": "论文口径（conditional on completion）：\n  Full 5.62 (n=10) ; w/o Debate 4.25 (n=10) -> delta = 5.62-4.25 = 1.37  [与正文 -1.37 一致]\n  w/o Self-Healing 4.83 (n=6)  -> delta = 5.62-4.83 = 0.79\n  w/o Evolution   5.14 (n=9)  -> delta = 0.48  [与正文 -0.48 一致]\n\ncompletion-adjusted 重算 adj = (Q*completed + imp*(10-completed))/10：\n  imp=1.0（量表下界）:\n    Full            5.620\n    w/o Debate      (4.25*10)/10 = 4.250   delta -1.370\n    w/o Self-Healing(4.83*6 +1*4)/10 = 3.298   delta -2.322   <-- 最大\n    w/o Evolution   (5.14*9 +1*1)/10 = 4.726   delta -0.894\n    w/o Verif.      5.480                      delta -0.140\n    w/o Debate&Heal (3.47*4 +1*6)/10 = 1.988   delta -3.632\n  imp=0.0:\n    w/o Self-Healing 2.898 (delta -2.722) > w/o Debate 4.250 (delta -1.370) —— 同向反转\n两种填补方式下，self-healing 的质量损失都大于 debate，正文 'debate is the largest quality contributor' 只在 conditional-on-completion 口径下成立。\n\nAccept 列分母检查（caption 规定分母 = completed）：\n  Full 3/10 (completed 10) OK ; w/o Debate 1/10 (completed 10) OK ;\n  w/o Self-Healing 1/6 (completed 6) OK ; w/o Verification 5/10 (completed 10) OK ;\n  w/o Debate&Healing 0/4 (completed 4) OK ;\n  w/o Evolution 2/10 但 completed = 9/10  -> 分母与 caption 规定不符（应为 x/9）。\n  统一按 10 个 topic 计：30.0% / 10.0% / 10.0% / 20.0% / 50.0% / 0.0%，  w/o Self-Healing 的 16.7% 会降为 10.0%，与 w/o Debate 持平。",
+        "raw": {
+          "table": "tab:component-abl",
+          "completion": [
+            10,
+            10,
+            6,
+            9,
+            10,
+            4
+          ],
+          "quality": [
+            5.62,
+            4.25,
+            4.83,
+            5.14,
+            5.48,
+            3.47
+          ],
+          "accept": [
+            "3/10",
+            "1/10",
+            "1/6",
+            "2/10",
+            "5/10",
+            "0/4"
+          ]
+        },
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The ablation's Quality column is averaged over completed topics only, and completion varies from 4/10 to 10/10 across rows. The authors themselves note that 'surviving topics are disproportionately easier', which means the w/o Self-Healing quality of 4.83 is measured on an easier subset than the full system's 5.62. If non-completed topics are scored at the scale minimum, self-healing becomes the largest quality contributor (-2.32) rather than debate (-1.37), reversing the paper's stated mechanism ranking. The Accept column also mixes denominators: the w/o Evolution row completes 9/10 topics but reports 2/10.\" 这条对 contribution 归因的打击很直接，因为 debate 是论文排第一的机制。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "同样无需补跑：把 Quality 改成对全部 10 个 topic 的 intent-to-treat 均值（未完成计量表下界），或额外给一列 'completed-only'，并统一 Accept 分母为 /10。机制排序的论断必须按新口径重写。",
+        "proposed": "Report Quality over all 10 topics (non-completed runs scored at the scale minimum) as the primary column, and keep the completed-only mean as a secondary column labelled as conditional. Fix the Accept column to a single denominator (x/10 for every row). Revise the text to: \"Under a completion-adjusted accounting, self-healing is the largest single-mechanism contributor to quality (-2.32) as well as to completion; debate contributes -1.37 among topics that complete in both configurations.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-003",
+      "severity": "blocker",
+      "category": "metric-circularity",
+      "title_zh": "端到端 1--10 分似由系统自身 Stage-20 Quality_Gate 产生，而七个 mode 中有四个恰好在 Stage 20 介入",
+      "summary_zh": "端到端评测的主指标是 'overall paper quality on a 1--10 scale with accept rate ($\\geq 5$) as the primary metric'，但论文从未说明这个分数由谁给出。附录 case study 反复称之为 'Stage-20 score'（Full-Auto 4.0 / CoPilot 8.0），正文也写 'The Stage-20 quality gate therefore accepts it'。而 Stage 20 = \\textsc{Quality\\_Gate}，是 AutoResearchClaw 自身流水线的一个阶段，同时被标注为 'HITL Gate'。\n\n按 tab:mode-mapping，介入 Stage 20 的 mode 是 Gate-Only(5,9,20)、CoPilot(...,20)、Step-by-Step(全 23 stage)、Post-Experiment(14,17,20)；不介入 Stage 20 的是 Full-Auto 与 Pre-Experiment。Table 2 里 Mean Q 最低的两行恰好就是这两个不碰 Stage 20 的 mode（4.03 与 4.28），四个碰 Stage 20 的 mode 全部在 4.86--7.27 区间。\n\n这构成测量效度问题：处理（人类介入）作用在评分器本身上，评分与处理不独立。无论真实机制是什么，读者无法区分 'CoPilot 产出的论文更好' 与 'CoPilot 让人在打分环节介入了'。退一步说，即使分数其实来自独立评委，论文也没有披露评分者身份，这本身就是协议缺失。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 13,
+          "excerpt": "The \\emph{end-to-end} mode evaluates the full pipeline from research idea to completed paper, assessing overall paper quality on a 1--10 scale with accept rate ($\\geq 5$) as the primary metric.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 192,
+          "excerpt": "The final CoPilot paper remains exploratory, but it reports nonzero contrasts across nine pipelines and states its limitations clearly. The Stage-20 quality gate therefore accepts it.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 690,
+          "excerpt": "limitations are stated explicitly, and the Stage-20 gate accepts the manuscript because claims align with the logs. Stage-20 score: 8.0.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 46,
+          "excerpt": "20 & \\textsc{Quality\\_Gate} & quality\\_report.json & HITL Gate \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 609,
+          "excerpt": "CoPilot & 5, 8, 9, 14, 17, 20 (+ smart pauses) & Full intervention with auto-approve \\\\",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "把 tab:mode-mapping 的 stage 集合与 Table 2 的 Mean Q 对齐：\n  不介入 Stage 20 的 mode: Full-Auto (stages: none) Mean Q 4.03 ; Pre-Experiment (5,8,9) Mean Q 4.28\n  介入 Stage 20 的 mode  : Thorough(phase boundaries) 4.86 ; Gate-Only(5,9,20) 5.03 ;\n                          Post-Experiment(14,17,20) 5.08 ; Step-by-Step(all 23) 5.19 ; CoPilot(...,20) 7.27\n  两组均值: 不介入组 (4.03+4.28)/2 = 4.155 ; 介入组 (4.86+5.03+5.08+5.19+7.27)/5 = 5.486\n  差 = 5.486 - 4.155 = 1.331，且两组完全不重叠（介入组最小 4.86 > 不介入组最大 4.28）。\n  与 Stage-20 介入完全共线的分组能解释全部 mode 排序，这一混淆在论文中未被讨论。\n  case study 交叉验证: T10 Full-Auto 'Stage-20 score: 4.0' vs Table 2 Full-Auto Mean Q 4.03；\n  T10 CoPilot 'Stage-20 score: 8.0' vs Table 2 CoPilot Mean Q 7.27 —— 量纲与量级一致，\n  支持 Table 2 的 Q 即 Stage-20 分数。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Who assigns the 1--10 paper-quality score is never stated. The appendix calls it the 'Stage-20 score' and Stage 20 is the system's own Quality_Gate, which is simultaneously one of the HITL gates. Four of the seven regimes (Gate-Only, CoPilot, Step-by-Step, Post-Experiment) inject human input at Stage 20; the two regimes that do not (Full-Auto, Pre-Experiment) are exactly the two lowest-scoring rows. The outcome metric is thus produced at a stage that the treatment manipulates. This is circular and the HITL ranking cannot be interpreted.\" 这条是本文最容易被一句话击穿核心贡献的地方，因为 HITL 结论是论文标题里 'Human-AI Collaboration' 的唯一实证支撑。",
+      "fix": {
+        "kind": "requires-experiment",
+        "rationale_zh": "最低成本的修法是把 70 份已生成的论文交给一个与流水线解耦的评委重新打分（不需要重跑 pipeline）：7 mode x 10 topic = 70 次评分调用，估计几小时、数十美元量级，截稿前可完成。如果分数本来就来自独立评委，那么只需在 §4.1 明确写出评分者、prompt 与它与 Stage 20 的关系，此时降为 mechanical 修正。",
+        "proposed": "State explicitly in Section 4.1 who produces the end-to-end 1--10 score. If it is the system's Stage-20 Quality_Gate, re-score all 70 HITL deliverables with an external judge that is not part of the pipeline and that is blind to the intervention regime, and report the HITL table under that external score. Add a sentence acknowledging that four of the seven regimes intervene at Stage 20 and that the self-reported gate score is therefore not a valid outcome measure for those regimes."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-004",
+      "severity": "blocker",
+      "category": "benchmark-favors-own-system",
+      "title_zh": "ARC-Bench 评分 rubric 直接以本系统的内部产物路径（stage-14/experiment_summary.json）为给分条件",
+      "summary_zh": "附录公布的 T01 rubric 中，Code Execution 叶子 t01-exec-metrics（权重 16.67，占 CE 全部权重的三分之二）写的是：'Machine-readable artifact (\\texttt{results/metrics.json} or \\texttt{stage-14/experiment\\_summary.json})'。其中 \\texttt{stage-14/} 是 AutoResearchClaw 自己的阶段编号（Stage 14 = \\textsc{Result\\_Analysis}，见 tab:all\\_stages），即评分标准把本系统的内部文件布局写进了给分条件。\n\n论文同时满足三个条件：作者设计 benchmark、作者设计 rubric 与 judge prompt、作者的系统被这套 rubric 评测，而基线系统按各自的格式输出。这是典型的 benchmark 自我偏好风险，而论文没有做任何格式归一化或盲评控制。\n\n作者显然意识到这个问题：仓库源码里有一整节被注释掉的 'Judge and Rubric Issues'，其中 (vi) 明确写道 'Some of RC's apparent advantage may reflect adapter/finalizer style alignment with the rubric. A blind, normalized-writeup or metric-table-only judge would be a useful ablation'，(v) 还写 'It would also reduce schema-mismatch penalties for AISv2, since AISv2 uses baseline and research\\_best naming while RC uses ARC-style condition keys'。这两段没有出现在编译出的论文里。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 552,
+          "excerpt": "Machine-readable artifact (\\texttt{results/metrics.json} or\n\\texttt{stage-14/experiment\\_summary.json}) with numeric accuracy \\emph{and}\na calibration metric (ECE, NLL, or Brier score) covering all conditions on\nat least one dataset.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 40,
+          "excerpt": "14 & \\textsc{Result\\_Analysis} & analysis.md + charts & Debate ($K{=}3$) \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 15,
+          "excerpt": "The strict judge grades each (framework $\\times$ topic) cell along three dimensions weighted as CD:CE:RA = 25:25:50.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 406,
+          "excerpt": "% \\paragraph{(vi) Style bias.} RC writeups are usually rubric-aware replication reports while AISv2 writeups are research-narrative-style. Some of RC's apparent advantage may reflect adapter/finalizer style alignment with the rubric. A blind, normalized-writeup or metric-table-only judge would be a useful ablation.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 404,
+          "excerpt": "It would also reduce schema-mismatch penalties for AISv2, since AISv2 uses \\texttt{baseline} and \\texttt{research\\_best} naming while RC uses ARC-style condition keys.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "权重影响估算：t01-exec-metrics 权重 16.67，t01-exec-seeds 权重 8.33，CE 类别权重合计 25。\n  16.67/25 = 66.7%，即单个提到本系统内部路径的叶子控制了 CE 分数的三分之二。\n  CE 在 overall_strict 中占 25%，故该叶子对 Overall 的直接影响 = 0.25 * 0.667 = 16.7 个百分点。\n  Table 1 中 CoPilot 与 AIDE-ML 的 Overall 差 = 0.648 - 0.511 = 0.137，\n  与 AI Scientist v2 的差 = 0.648 - 0.419 = 0.229。\n  也就是说，仅这一个格式对齐叶子的最大可能影响（0.167）就大于 CoPilot 对 AIDE-ML 的全部优势（0.137），\n  并覆盖 CoPilot 对 AISv2 优势（0.229）的 73%。\n  CE 列本身的差距: CoPilot 0.578 vs AIDE 0.415 = +0.163 ; vs AISv2 0.442 = +0.136，同一量级。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The benchmark, the rubric and the judge are all authored by the same group that authors the system under evaluation, and the published rubric literally names the proposed system's internal artifact path (stage-14/experiment_summary.json) as a scoring target. A baseline that writes its metrics elsewhere is penalised for schema mismatch rather than for scientific quality. Since this single leaf carries two thirds of the Code Execution weight, and Code Execution is a quarter of the headline score, the reported 54.7% advantage cannot be separated from format alignment. A blind, normalised-writeup judge is needed.\" 这条会被直接引用为 'the main comparison is confounded'。",
+      "fix": {
+        "kind": "requires-experiment",
+        "rationale_zh": "补做代价可控：不需要重跑任何系统，只需把已有的 4 系统 x 25 topic = 100 个 cell 的产物做格式归一化后重新评分（约 100 次 judge 调用，1 天内可完成），报告归一化前后的分差。同时把 rubric 里的 stage-14/experiment_summary.json 换成与系统无关的通用描述。",
+        "proposed": "Rewrite the rubric leaf as \"a machine-readable metrics artifact in any location, discoverable from the submission README\", removing all references to AutoResearchClaw's internal stage paths. Add a normalisation ablation: convert every system's outputs to a common condition x dataset x seed x metric table before judging, re-score all 100 cells, and report both the raw and normalised Overall columns. Restore the 'Judge and Rubric Issues' appendix (currently commented out in the source), in particular items (v) schema mismatch and (vi) style bias."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-005",
+      "severity": "blocker",
+      "category": "unreproducible-aggregate",
+      "title_zh": "Table 3 的 Overall 列无法按 caption 声明的聚合规则复算，且三行使用了不同的分母",
+      "summary_zh": "tab:scidomain 的 caption 明确规定了聚合规则：'Failed runs are counted as zero when computing the run-weighted overall mean over the 20 science-domain tasks'，且正文说明任务构成为 biology B01--B07 (7)、statistics S01--S03 (3)、HEP-ph P01--P10 (10)，合计 20。\n\n按这个规则复算，三行的 Overall 都对不上：两个基线的印刷值对应的分母是 15 而不是 20；本系统的印刷值 0.867 则对应 HEP 只贡献约 1 个任务（而不是 10 个）的权重。也就是说，同一列的三个数字使用了互相不同、且都不是 caption 所声明的聚合方式，而这一列正是 '本系统覆盖跨领域、基线不覆盖' 这一 claim 的量化载体。\n\n另外正文说 'the third statistics run completed the pipeline but failed the requirements judge on missing metric artifacts and is therefore excluded from the column mean'——本系统的失败 run 被排除，而基线的失败 run 被计零，两类失败的处理方式不一致。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 104,
+          "excerpt": "Failed runs are counted as zero when computing the run-weighted overall mean\nover the 20 science-domain tasks.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 113,
+          "excerpt": "\\system{} (CoPilot) & \\textbf{0.912} & \\textbf{0.898} & \\textbf{0.489} & \\textbf{0.867} \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 114,
+          "excerpt": "AIDE-ML             & \\xmark        & 0.452          & \\xmark        & 0.090 \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 115,
+          "excerpt": "AI Scientist v2     & \\xmark        & 0.418          & \\xmark        & 0.084 \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 122,
+          "excerpt": "the third statistics run completed the pipeline but failed the requirements judge on missing metric artifacts and is therefore excluded from the column mean.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 13,
+          "excerpt": "a 20-topic scientific-domain extension covering 10 high-energy physics (\\textsc{P01}--\\textsc{P10}), 7 systems biology (\\textsc{B01}--\\textsc{B07}), and 3 statistics (\\textsc{S01}--\\textsc{S03}) tasks",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py",
+        "recompute": "任务权重 nb=7 (B01-B07), ns=3 (S01-S03), nh=10 (P01-P10), 合计 20。\n\nAIDE-ML（bio/HEP 失败计零）:\n  (0*7 + 0.452*3 + 0*10)/20 = 1.356/20 = 0.0678   印刷值 0.090   差 +0.0222\n  反解分母: 0.452*3/0.090 = 15.07  -> 实际用的是 /15，不是 /20\nAI Scientist v2:\n  (0*7 + 0.418*3 + 0*10)/20 = 1.254/20 = 0.0627   印刷值 0.084   差 +0.0213\n  反解分母: 0.418*3/0.084 = 14.93  -> 同样是 /15\n  验证: 1.356/15 = 0.0904 ~ 0.090 ; 1.254/15 = 0.0836 ~ 0.084  两行一致地用了 15\n\nAutoResearchClaw (CoPilot):\n  (0.912*7 + 0.898*3 + 0.489*10)/20 = (6.384+2.694+4.890)/20 = 13.968/20 = 0.6984\n  印刷值 0.867，差 +0.1686（相对高估 24.1%）\n  若 statistics 只算 2 个有效 run: (6.384+1.796+4.890)/19 = 13.070/19 = 0.6879，仍非 0.867\n  三列非加权平均: (0.912+0.898+0.489)/3 = 0.7663，仍非 0.867\n  反解 HEP 任务数 x: (6.384+2.694+0.489x)/(10+x) = 0.867 -> x = (9.078-8.670)/(0.867-0.489) = 1.079\n  即 0.867 相当于把 10 个 HEP 任务当成 ~1 个任务加权。\n\n结论：三行 Overall 分别隐含分母 15、15、约 11，caption 声明的 20 无一适用。按 caption 规则统一复算应为 0.698 / 0.090(/15 则 0.068) / 0.084(/15 则 0.063)。",
+        "raw": {
+          "table": "tab:scidomain",
+          "stated_rule": "failed runs = 0, run-weighted over 20 tasks",
+          "implied_denominators": {
+            "AIDE-ML": 15.07,
+            "AI Scientist v2": 14.93,
+            "ARC CoPilot": "~11"
+          }
+        },
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Table 3's Overall column does not follow the rule stated in its own caption. With 7 biology, 3 statistics and 10 HEP tasks and failures counted as zero, AIDE-ML's Overall should be 0.068, not 0.090 (the printed value implies a denominator of 15), and the proposed system's should be 0.698, not 0.867 (the printed value implies HEP contributes the weight of roughly one task). Three rows of the same column use three different aggregation rules, and the one that deviates most is the authors' own. I cannot reproduce any number in this column.\" 这种 'caption 自带公式但复算不上' 的问题在 rebuttal 里几乎无法辩解，会被作为 sloppiness 或更严重问题的证据。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "必须回到原始 per-task 分数重新聚合并公布 per-task 表。若 0.867 来自某种未声明的加权（例如按领域等权、或排除 HEP 的部分子任务），必须在 caption 里写清楚，并对三行使用同一规则。",
+        "proposed": "Publish the 20 per-task scores for all three systems and recompute the Overall column with a single, stated rule applied identically to every row. If failures are counted as zero over 20 tasks, the column becomes 0.698 / 0.068 / 0.063. Additionally, treat the excluded third statistics run the same way as baseline failures (either both excluded or both zero) and report both variants."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-006",
+      "severity": "major",
+      "category": "failure-scored-as-zero",
+      "title_zh": "基线的\"环境装不上\"被计 0 分并计入聚合，无排除失败任务的敏感性分析；Agent Laboratory 的排除理由仅为作者断言",
+      "summary_zh": "两处失败计零：\n(1) Table 3：AIDE-ML 与 AI Scientist v2 在 biology 与 HEP 列记 \\xmark，理由是 'fail to install the required HEP and biology stacks under fair-input conditions'，caption 规定这些失败按 0 计入 Overall。'装不上依赖' 与 '方法不适用于该任务' 是两件事：前者可能取决于作者给的镜像、网络策略（Phase 2 断网）和时间预算，后者才是方法局限。论文没有报告排除失败任务后的均值作为敏感性分析。\n(2) Table 1：正文说 'AI Scientist v2 fails on 6 topics'、本系统 Full-Auto 失败 2 个 topic，但 caption 只说 'mean scores across all 25 topics'，从未说明失败 cell 如何计分（附录的 timeout rule 说 CE 强制 0.0、RA 上限 0.1），也没有排除失败后的对照数字。而失败率差异极大（6/25 vs 2/25），这一处理方式直接放大了 headline 的 54.7%。\n\n(3) Agent Laboratory 的排除理由 'does not deliver end-to-end execution under fair-input conditions' 是纯作者断言：既没有说明尝试了哪个版本、失败在哪一步，也没有给可复核的日志或引用。同一篇论文的 Table 1（tab:comparison）里 Agent Lab 的 'End-to-end pipeline' 被打 \\xmark，但其原论文正是主张端到端的，二者需要证据支撑。\n\n(4) R1.1 残留缺口：tab:comparison 自己给 MLR-Copilot 打了 'Real experiment exec.' \\cmark 与 'End-to-end pipeline' \\tmark、给 AI-Researcher 列入端到端系统，但这两个系统既未被实证比较，也没有像 Agent Laboratory 那样给出排除理由。审稿人会问：为什么只比这两个？",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 92,
+          "excerpt": "AIDE-ML and AI Scientist v2 fail to install the required HEP and biology stacks under fair-input conditions and produce no valid output on \\textsc{P01}--\\textsc{P10} and \\textsc{B01}--\\textsc{B07}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 104,
+          "excerpt": "Failed runs are counted as zero when computing the run-weighted overall mean over the 20 science-domain tasks.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "Agent Laboratory~\\citep{schmidgall2025agentlab} is excluded because it does not deliver end-to-end execution under fair-input conditions.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 73,
+          "excerpt": "AI Scientist v2 fails on 6 topics, with failures concentrated in topics requiring iterative experiment refinement (dynamical systems, causal discovery) where single-attempt execution without recovery is insufficient.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 124,
+          "excerpt": "The qualitative conclusion of Table~\\ref{tab:scidomain} is that both baselines score zero on physics and biology because their sandboxes do not include the required scientific software; \\system{}'s domain-skill installation step closes this gap.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 31,
+          "excerpt": "Real experiment exec.\\     & \\cmark & \\xmark & \\tmark & \\cmark & \\xmark & \\cmark \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/related_work.tex",
+          "line": 6,
+          "excerpt": "Agent Laboratory~\\citep{schmidgall2025agentlab} and AI-Researcher~\\citep{tang2025airesearcher} automate portions of the pipeline but neither verifies results against ground-truth measurements nor accumulates knowledge across runs. MLR-Copilot~\\citep{li2024mlrcopilot} targets machine learning research with explicit human feedback at the execution stage.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py + agent-read",
+        "recompute": "Table 1 排除失败 topic 的敏感性上界（失败 cell 的得分 >= 0，故排除后的均值 <= 下式）：\n  AI Scientist v2: 总分 = 25 * 0.419 = 10.475 ; 排除 6 个失败 topic -> 均值 <= 10.475/19 = 0.5513\n  ARC Full-Auto : 总分 = 25 * 0.596 = 14.900 ; 排除 2 个失败 topic -> 均值 <= 14.900/23 = 0.6478\n  headline 相对优势由 (0.648-0.419)/0.419 = 54.7% 变为至少 (0.648-0.5513)/0.5513 = 17.5%\n  即：在最保守假设下，54.7% 这个数字有约 2/3 来自失败 cell 计零的口径选择。\n\nTable 3 排除失败任务后的对照（只用有 valid 输出的任务）：\n  AIDE-ML   仅 statistics 有效 -> 0.452 ; AI Scientist v2 -> 0.418 ; ARC CoPilot statistics -> 0.898\n  也就是说，在两个基线能跑起来的唯一领域上，差距是 0.898 vs 0.452 (+98.7%)，\n  而不是 Overall 列呈现的 0.867 vs 0.090 (+863%)。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Counting a baseline's environment-installation failure as a score of zero and then reporting an aggregate advantage is a choice that inflates the headline number. The paper reports a 54.7% advantage over AI Scientist v2, but AI Scientist v2 fails on 6 of 25 topics; excluding failed topics the advantage is at most 17.5%. On the science-domain tasks the baselines score zero on 17 of 20 tasks purely because the authors' sandbox does not ship their dependencies. At minimum the authors must report the excluding-failures means as a sensitivity analysis and justify the exclusion of Agent Laboratory with verifiable evidence rather than an assertion.\" 这条几乎必然出现在 weakness 列表里。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "数据已存在，只需补一组敏感性数字与一段说明；Agent Lab 的排除理由需要具体化（版本号、失败阶段、日志）。如果作者愿意，补跑 Agent Lab 的 25 topic 约需 25 次端到端 run（按论文自述 $3--15/run，约 $75--375，1--2 天），截稿前可行。",
+        "proposed": "Add to both Table 1 and Table 3 a column \"Overall (failed tasks excluded)\" alongside the failure-as-zero column, and state in the caption exactly how failed cells are scored. Replace the Agent Laboratory exclusion sentence with: \"We ran Agent Laboratory vX.Y under the same backbone and sandbox; it terminated at <stage> on N of 25 topics for <reason>; logs are released with the benchmark.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-007",
+      "severity": "major",
+      "category": "no-repeats-no-variance",
+      "title_zh": "三张主表全部是单次运行，无种子数、无重复、无误差棒，而论文自己的 rubric 要求被测系统报告多种子离散度",
+      "summary_zh": "Table 1（4 系统 x 25 topic）、Table 2（7 mode x 10 topic）、Table 3（3 系统 x 20 task）没有任何重复次数、随机种子、标准差或置信区间的报告。§4.5 反过来确认了 HITL 是单次运行：'... should be read against Table~4 rather than the single-run HITL results'。\n\n同一篇论文在 §4.5 明确写道 'Autonomous research agents are stochastic and path-dependent: a single unlucky branch in hypothesis generation, code repair, or drafting can dominate the final outcome'。既然作者认为单次运行不可靠到必须为消融引入 best-of-3，那么用单次运行支撑主表的系统排序和 mode 排序在同一逻辑下也不成立。\n\n还有一层反讽：ARC-Bench 自己的 rubric 给被测系统的 t01-exec-seeds 叶子（权重 8.33）打分标准是 'Metrics aggregated over multiple random seeds ... with dispersion reporting: std, stderr, CI, or min/max across seeds. A small-but-honest seed count with reported variance is preferable to a single deterministic run.' 论文对被评系统提出的统计要求，高于它对自己实验的要求。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 148,
+          "excerpt": "Autonomous research agents are stochastic and path-dependent: a single unlucky branch in hypothesis generation, code repair, or drafting can dominate the final outcome. We therefore adopt a best-of-$N$ protocol; Full-Auto numbers in this ablation reflect this setting and should be read against Table~\\ref{tab:component-abl} rather than the single-run HITL results.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 29,
+          "excerpt": "\\caption{\\bench{} experiment-stage results (25 topics, CD:CE:RA = 25:25:50).}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 48,
+          "excerpt": "\\caption{End-to-end HITL ablation across 10 topics and 7 intervention regimes.\nPaper quality scored 1--10; accept $=$ score $\\geq 5$.}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 556,
+          "excerpt": "\\item[t01-exec-seeds \\normalfont{[8.33]}]\nMetrics aggregated over multiple random seeds per (condition,~dataset) cell\nwith dispersion reporting: std, stderr, CI, or min/max across seeds.\nA small-but-honest seed count with reported variance is preferable to a single\ndeterministic run.",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py + agent-read",
+        "recompute": "全文数值扫描：tables.json 中 tab:arcbench-aggregate / tab:hitl-summary / tab:scidomain 的 48 个数值单元格里，带 +- 、std、CI 标记的单元格数 = 0。\ngrep 'seed|std|confidence interval|error bar' 命中的正文位置全部属于 (a) 系统对被测代码的要求、(b) rubric 叶子定义、(c) 内部 registry 描述，没有一处是论文自身实验的重复次数或离散度。\n唯一披露的重复协议是 Table 5 的 best-of-3（3 reruns per configuration-topic pair），但报告的是 best 而非 mean/std，无法据此估计方差。\n量级参照：Table 2 中相邻 mode 的 Mean Q 差为 5.19-5.08=0.11、5.03-4.86=0.17、4.28-4.03=0.25，在 1--10 量表上单个 topic 的分数波动（case study 里同 topic 从 4.0 到 8.0）就足以改变这些排序。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Every headline table is a single run. The paper itself states that these agents are 'stochastic and path-dependent' and that 'a single unlucky branch ... can dominate the final outcome', and adopts best-of-3 for the ablation for exactly this reason -- yet the cross-system comparison and the seven-way HITL ranking, whose adjacent rows differ by 0.11--0.25 on a 1--10 scale, rest on one sample per cell. No seeds, no error bars, no repeats. I do not know whether any of the reported orderings is stable.\" 这是 ML 审稿人最标准的一条 weakness，几乎不会漏掉。",
+      "fix": {
+        "kind": "unfixable-before-deadline",
+        "rationale_zh": "完整补齐代价过高：HITL 表要做 3 seed 就是 7 mode x 10 topic x 3 = 210 次端到端 run，按论文自述 $3--15/run 约 $630--3150，且每 run 含多阶段 LLM 调用与沙箱执行，现实耗时按周计，截稿前做不完。务实做法是二选一：(a) 在 5 个 topic 的子集上补 3 次重复（15 run，约 $45--225，1--2 天），用它给出方差量级并声明其余为单次；(b) 直接在 limitations 里写明单次运行的限制。主动承认远好过被审稿人抓出来。",
+        "proposed": "Add to the Limitations section: \"All numbers in Tables 1--3 come from a single run per (system, topic) or (mode, topic) cell. Because autonomous research agents are stochastic and path-dependent -- the same property that motivates the best-of-3 protocol in Section 4.5 -- the reported orderings should be read as indicative rather than statistically established. We report a three-repeat variance estimate on a 5-topic subset in Appendix X; extending this to the full benchmark is left to future work.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-008",
+      "severity": "major",
+      "category": "underpowered-sample",
+      "title_zh": "N=6--10 的小样本报 87.5%：Wilson 区间宽 45--63pp，\"consistently outperforms\" 无统计支撑",
+      "summary_zh": "Table 2 的 Accept 全部来自 6--10 个样本：87.5%=7/8、25.0%=2/8、42.9%=3/7、50.0%=3/6。在这些分母下报到小数点后一位，暗示了数据并不具备的精度：CoPilot 只要有一个 topic 翻转，87.5% 就变成 75.0%（12.5 个百分点的跳变）。Mean Q 报到小数点后两位同理。\n\n摘要与结论用 'consistently outperforms' 描述 87.5% vs 25% vs 50%，但 Wilson 95% 区间大面积重叠，Fisher 精确检验 p = 0.041（单个比较，未做多重比较校正；本表隐含 7 个 mode 两两比较共 21 个）。在 Bonferroni 校正（0.05/21 = 0.0024）下，即使最大的那个差异也不显著。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 58,
+          "excerpt": "\\textbf{CoPilot} & 8/10  & \\textbf{7.27} & \\textbf{87.5\\%} & 6 \\\\",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 59,
+          "excerpt": "Thorough         & 7/10  & 4.86          & 42.9\\%          & 8 \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "main.tex",
+          "line": 149,
+          "excerpt": "targeted collaboration at high-leverage decision points consistently outperforms both full autonomy and exhaustive step-by-step oversight",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 35,
+          "excerpt": "A human-in-the-loop ablation across seven intervention modes shows that targeted human input at high-leverage decision points consistently outperforms both full autonomy and dense step-by-step oversight.",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py",
+        "recompute": "Wilson 95% 区间 (z=1.95996):\n  Full-Auto       2/8  = 25.0%  -> [ 7.1%, 59.1%]  宽 51.9pp\n  Gate-Only       5/10 = 50.0%  -> [23.7%, 76.3%]  宽 52.7pp\n  CoPilot         7/8  = 87.5%  -> [52.9%, 97.8%]  宽 44.8pp\n  Thorough        3/7  = 42.9%  -> [15.8%, 75.0%]  宽 59.1pp\n  Step-by-Step    5/10 = 50.0%  -> [23.7%, 76.3%]  宽 52.7pp\n  Pre-Experiment  3/8  = 37.5%  -> [13.7%, 69.4%]  宽 55.7pp\n  Post-Experiment 3/6  = 50.0%  -> [18.8%, 81.2%]  宽 62.5pp\nCoPilot [52.9,97.8] 与 Full-Auto [7.1,59.1] 重叠区间 [52.9,59.1]；\nCoPilot 与 Gate-Only/Step-by-Step [23.7,76.3] 重叠 [52.9,76.3]，即与 50% 组无法区分。\nFisher 精确检验 CoPilot 7/8 vs Full-Auto 2/8: two-sided p = 0.0406 (odds ratio 21.0)\n  多重比较: 7 个 mode 的两两比较数 = C(7,2) = 21 ; Bonferroni 阈值 0.05/21 = 0.00238 > 0.0406 -> 不显著\n单 topic 翻转敏感性: 7/8 = 87.5% -> 6/8 = 75.0% (变化 12.5pp) ; 8/8 = 100.0%\n                    3/6 = 50.0% -> 2/6 = 33.3% (变化 16.7pp)\nMean Q 的两位小数在 n=6 时，单个 topic 变动 1 分即改变均值 1/6 = 0.167，远大于表中相邻行差 0.11。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"87.5% is 7 of 8, and 25.0% is 2 of 8. The Wilson intervals are [52.9, 97.8] and [7.1, 59.1] and overlap; the Fisher exact p is 0.041 for a single comparison out of 21 possible pairwise comparisons. One topic flipping moves CoPilot from 87.5% to 75%. Describing this as 'consistently outperforms' in the abstract overstates what an n=8 experiment can show.\" 修复成本极低（加区间 + 改措辞），不修则是白送给审稿人的一条 weakness。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "加 Wilson 区间与样本量、把 'consistently' 降级为 'in our 10-topic study'，不需要任何新实验。",
+        "proposed": "In Table 2, report accept as \"7/8 (87.5%, 95% Wilson CI 52.9--97.8)\" and give the count alongside every percentage. In the abstract and introduction replace \"consistently outperforms\" with \"achieves the highest accept rate in our 10-topic study, although the confidence intervals of the seven regimes overlap substantially at this sample size.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-009",
+      "severity": "major",
+      "category": "unspecified-significance-test",
+      "title_zh": "唯一的 p 值（p=0.003）没有说明检验类型、样本配对方式，也没有多重比较校正，且只对最有利的那一行报告",
+      "summary_zh": "全文只出现一个 p 值：'Multi-agent debate is the largest quality contributor ($-1.37$, $p{=}0.003$)'。问题有四层：\n(1) 未说明检验类型（配对 t、Wilcoxon、bootstrap？）、单双侧、自由度；\n(2) 该 p 值算在 best-of-3 选出的分数上——best-of-N 选择会改变分布形状（右截尾），对选择后的极值做标准配对检验，名义 p 值不再有效；\n(3) 未做多重比较校正：同表有 5 个消融对照 x 3 个指标 = 15 次隐含比较；\n(4) 选择性报告：4 个单组件移除行里只有 debate 这一行给了 p 值，而恰好是 w/o Self-Healing 与 w/o Evolution 两行涉及分母变化、更需要统计说明。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 170,
+          "excerpt": "Multi-agent debate is the largest quality contributor ($-1.37$, $p{=}0.003$): without the Pragmatist filtering infeasible hypotheses and the Skeptic scrutinizing weak findings, both hypothesis quality and result analysis degrade.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 152,
+          "excerpt": "Component ablation in Full-Auto mode on the same 10 ARC-BENCH topics using a best-of-3 protocol over three reruns per configuration--topic pair.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "反解该 p 值所隐含的统计量（假设 n=10 配对、双侧 t 检验、df=9）：\n  |t| = t.ppf(1-0.003/2, 9) = 4.024\n  隐含配对差的标准差 sd = 1.37 * sqrt(10) / 4.024 = 1.077\n  该数值是自洽的，因此 p=0.003 与配对 t 检验兼容，但论文没有说明这一点。\n多重比较：消融表 5 个对照行 x 3 个指标（Quality / Completion / Accept）= 15 次比较\n  Bonferroni 阈值 = 0.05/15 = 0.00333 ; 报告的 p=0.003 < 0.00333，勉强通过（余量 0.00033）\n  若把 Table 2 的 7 mode 两两比较（21 次）一并计入，阈值降至 0.05/36 = 0.00139，则不再通过。\n  n=10 时精确符号检验的最小可达双侧 p = 2*(0.5^10) = 0.00195，说明该样本量下 p 的分辨率本就很粗。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"A single p-value appears in the paper with no test named, no degrees of freedom, and no multiple-comparison correction, computed on scores that were themselves selected as the best of three reruns -- a selection step that invalidates the nominal null distribution. With 15 implicit comparisons in the ablation table the Bonferroni threshold is 0.0033, so p=0.003 is marginal at best, and no p-value is reported for the other three single-component removals.\" 一条低成本、高命中率的 weakness。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "补齐检验描述与全部对照的 p 值/效应量，或干脆删掉 p 值只报效应量与配对样本量。数据已有，无需补跑。",
+        "proposed": "State the test explicitly, e.g.: \"Paired two-sided Wilcoxon signed-rank over the 10 topics (n=10, W=..., p=0.003, Holm-corrected across the five ablation contrasts p=...).\" Report the same statistic for every ablation row, and note that p-values are computed on best-of-3 selected scores and are therefore anti-conservative."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-010",
+      "severity": "major",
+      "category": "undisclosed-run-budget-parity",
+      "title_zh": "best-of-N 只在消融表披露；Table 1/2/3 每个 cell 跑了几次、基线是否享有同等预算完全没有交代",
+      "summary_zh": "§4.5 对消融表的 best-of-3 披露是清晰、到位的（见 passed 记录）。但披露只覆盖 Table 5。Table 1（跨系统对比）、Table 2（HITL）、Table 3（跨领域）都没有说明每个 (system, topic) cell 跑了几次、是否取最好一次、失败后是否重试。\n\n这一点在这篇论文里格外要紧，因为本系统的核心机制之一 self-healing 本身就是 '同一 topic 内多次重试'，而基线 AIDE-ML 被描述为 'experiments that encounter runtime errors are discarded rather than repaired'。如果本系统在 cell 内部可以重试 N_r=10 次（附录算法 REQUIRE 里写 max refines $N_r{=}10$，max pivots $N_p{=}2$）而基线只跑一次，那么读者无法判断 '同等 per-experiment time budget' 是否等价于同等尝试预算。论文只声明了 'identical per-experiment time budgets'，没有声明尝试次数或 token 预算对等。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "All frameworks use the same LLM backbone (GPT-5.3-codex) and the same sandboxed execution environment with identical per-experiment time budgets.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 148,
+          "excerpt": "We therefore adopt a best-of-$N$ protocol; Full-Auto numbers in this ablation reflect this setting and should be read against Table~\\ref{tab:component-abl} rather than the single-run HITL results.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 64,
+          "excerpt": "\\REQUIRE Research idea $\\mathcal{I}$, lesson store $\\mathcal{L}$, max pivots $N_p{=}2$, max refines $N_r{=}10$",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 71,
+          "excerpt": "AIDE-ML's execution success rate (0.415) is substantially lower, reflecting its lack of self-healing: experiments that encounter runtime errors are discarded rather than repaired.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "预算对等的可核查项清点：\n  已披露: 同 backbone (GPT-5.3-codex)、同沙箱、identical per-experiment time budgets\n  未披露: 每 cell 运行次数、是否 best-of-N、失败重试次数、token 上限、总 wall-clock、总成本\n  本系统内部尝试上界: N_r=10 refine x N_p=2 pivot -> 单个 topic 最多 (10+1)*(2+1) = 33 次执行尝试\n  基线 AIDE-ML 按论文描述为 0 次重试。\n  在 'identical per-experiment time budget' 语义下，若 budget 指单次 experiment 的墙钟时间，\n  则本系统可在同一 topic 上消耗至多 33 倍于基线的执行时间而不违反该声明。\n  论文未给出任何总耗时/总 token 数据来排除这一解释。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The best-of-3 protocol is disclosed for the ablation, which I appreciate, but the number of runs per cell in the main cross-system comparison is never stated. The proposed system is allowed up to 10 refine iterations and 2 pivots per topic while AIDE-ML is described as discarding failed experiments. 'Identical per-experiment time budgets' does not establish an identical total attempt or token budget. Please report runs per cell, total wall-clock and total token cost per system.\"",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "只需补一张预算对照表（每系统的 run 次数、总 wall-clock、总 token/成本），数据应在运行日志里。",
+        "proposed": "Add to Section 4.1: \"Each (framework, topic) cell in Tables 1 and 3 is a single run; no best-of-N selection is applied outside Section 4.5. Table X reports, per framework, the number of runs, the total wall-clock time and the total token cost, so that attempt budgets can be compared directly.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-011",
+      "severity": "major",
+      "category": "judge-human-agreement-unquantified",
+      "title_zh": "核心指标由 LLM 评委产生，人类一致性只有一句无数字的断言（无子集规模、无一致性统计量、|Δ| 指代不明）",
+      "summary_zh": "论文全部主指标（Table 1、Table 3 的 rubric 分，以及事实上的 Table 2 质量分）都由 LLM agent 评委产生。正文只提到 agent 之间的一致性：'Two independent agent reviewers run the strict judge in parallel; per-leaf disagreements exceeding $|\\Delta| > 0.20$ are re-adjudicated'。\n\n附录确实提到了人类：'The strict judge is designed to produce the same scoring distribution under three independent reviewer modes: a Claude Code subagent (Opus~4.7), a Codex CLI agent (GPT-5.4), and a human expert' 以及 'Human expert scores follow the same protocol on a held-out subset. Mean per-leaf $|\\Delta| < 0.10$ across the audited subset'。但这段话不构成可核查的效度证据：\n(a) held-out subset 的规模（几个 cell？几个 topic？几个叶子？）未给；\n(b) 'Mean per-leaf |Δ| < 0.10' 没说是两个 agent 之间还是 agent 与人类之间——两句相邻且都用同一符号；\n(c) 没有任何标准一致性统计量（Pearson/Spearman、Cohen's kappa、ICC、Krippendorff alpha）；\n(d) 只报 per-leaf 平均绝对差，不报聚合分数层面的一致性——而排序用的是聚合分；\n(e) 人类专家是不是作者本人、是否对系统身份盲，均未说明。\n'designed to produce the same scoring distribution' 是设计意图，不是测量结果。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 510,
+          "excerpt": "Human expert scores follow the same protocol on a held-out subset.\nMean per-leaf $|\\Delta| < 0.10$ across the audited subset, with disagreements concentrated on partial-implementation cases where code reading is ambiguous.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 15,
+          "excerpt": "Two independent agent reviewers run the strict judge in parallel; per-leaf disagreements exceeding $|\\Delta| > 0.20$ are re-adjudicated and final scores are averaged.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 492,
+          "excerpt": "The strict judge is designed to produce the same scoring distribution under three independent reviewer modes: a Claude Code subagent (Opus~4.7), a Codex CLI agent (GPT-5.4), and a human expert.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "可核查性清点（一致性验证应报告的量 vs 论文实际给出的量）：\n  子集规模 N              : 未给\n  比较对象（agent-agent / agent-human）: 文本歧义，两句相邻共用 |Delta| 记号\n  一致性统计量           : 未给（无 kappa / ICC / 相关系数）\n  聚合分层面一致性       : 未给（只提 per-leaf）\n  评委是否对系统身份盲   : 未给\n  人类专家是否为作者     : 未给\n量级参照：叶子分数域为 [0,1]，'per-leaf |Delta| < 0.10' 在 T01 rubric 的最大权重叶子 (t01-result-h1, 权重 20/100) 上对应 overall 分差最大 0.10*20/100 = 0.020；\n  但若各叶子同向偏移 0.10，overall 偏移可达 0.10（因权重和为 100，sum w*0.10/100 = 0.10）。\n  Table 1 中 CoPilot 与 AIDE-ML 的 Overall 差仅 0.137，与该上界同量级 ——   这正说明必须报告聚合分层面的一致性区间，而不是 per-leaf 平均。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Every headline number is produced by an LLM judge. The paper reports agreement between two agent reviewers, but agreement between two LLMs says nothing about alignment with human judgement. The one sentence about a human expert gives no subset size, no agreement statistic, and it is not even clear whether the quoted mean |Delta| < 0.10 refers to agent-agent or agent-human agreement. Since the gap between the proposed system and the strongest baseline is 0.137 in overall score, and a uniform per-leaf shift of 0.10 moves the overall score by up to 0.10, the judge's validity is not established at the resolution the paper's claims require.\" R5.5 是这类论文的标配质疑点。",
+      "fix": {
+        "kind": "requires-experiment",
+        "rationale_zh": "补做成本低：请 2 位与本项目无关的专家对分层抽样的 20--30 个 cell 独立打分（约 1 人日），报告 agent-human 的 Spearman rho 与聚合分的 Bland-Altman / ICC。截稿前完全可行，性价比很高。",
+        "proposed": "Replace the Cross-validation paragraph with: \"We validated the judge against human experts on a stratified subset of N cells (M topics x K frameworks). Two experts who are not authors of the system scored each cell blind to framework identity. Agent-human agreement at the leaf level is mean |Delta| = ..., Krippendorff's alpha = ...; at the aggregate level Spearman rho = ... and the Bland-Altman limits of agreement are [..., ...]. Agent-agent agreement is reported separately.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-012",
+      "severity": "major",
+      "category": "missing-no-scaffold-baseline",
+      "title_zh": "缺少\"无脚手架\"平凡对照：系统把复杂任务直接派发给外部编码 agent，而该 agent 单独运行的成绩从未测量",
+      "summary_zh": "系统在 Stage 10 使用 cascade：'Beast Mode (external AI agent) $\\to$ CodeAgent $\\to$ Legacy single-shot'，复杂度 $c > \\tau = 0.6$ 的实验被 'dispatched to an external AI coding agent'；科学领域任务则 'Each specialized agent runs inside a Claude Code subprocess with the requisite packages pre-installed'。也就是说，本系统在关键的代码生成与执行环节，把工作交给了一个成熟的外部编码 agent。\n\n但论文没有测量这个外部 agent 单独在 ARC-Bench 上的成绩。缺了这个对照，读者无法回答本文最该回答的问题：23 个 stage、5 个机制的脚手架，相对于 '直接把 topic 丢给 Claude Code / Codex 并要求它写 README' 到底带来多少增量？在 Table 3 上这个问题尤其尖锐——那里基线的 0 分完全来自依赖装不上，而本系统的优势被归因于 'domain-skill installation step'，这是环境预装差异而非研究能力差异。\n\nR1.6 意义上的其它平凡对照也没有：没有 'no-op / 人类专家写的参考解' 上界，没有 'single-agent 一次性 prompt' 下界。",
+      "locations": [
+        {
+          "file": "sections/system.tex",
+          "line": 53,
+          "excerpt": "Experiments above a fixed threshold $\\tau$ (set to $0.6$ in all experiments) are dispatched to an external AI coding agent.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 54,
+          "excerpt": "$^\\dagger$Cascade: Beast Mode (external AI agent) $\\to$ CodeAgent (multi-phase, blueprint, sequential, AST gates) $\\to$ Legacy single-shot. Each tier falls back to the next on failure.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 86,
+          "excerpt": "Each specialized agent runs inside a Claude Code subprocess with the requisite packages pre-installed, so the top-level orchestrator requires no domain-specific knowledge.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "We compare against AI Scientist v2~\\citep{yamada2025aiscientistv2} and AIDE-ML~\\citep{aide2025}, the two systems that provide end-to-end execution paths comparable to \\system{}",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "对照矩阵清点（ARC-Bench 25 topic 上被测的配置）：\n  AutoResearchClaw CoPilot   : 有 (0.648)\n  AutoResearchClaw Full-Auto : 有 (0.596)\n  AIDE-ML                    : 有 (0.511)\n  AI Scientist v2            : 有 (0.419)\n  外部编码 agent 单独运行     : 无\n  单次 prompt 的 single-agent : 无\n  人类参考解 / oracle 上界     : 无\n  随机或 no-op 下界            : 无\n注意 Table 3 的差距量级: ARC 0.867 vs 基线 0.090/0.084，其中 17/20 个任务的基线得分为 0 且原因被论文自己归为 'their sandboxes do not include the required scientific software'，即该差距的主要来源是预装依赖，而非 debate / self-healing / evolution 等本文主张的机制。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The system dispatches complex code generation to an external AI coding agent and runs domain tasks inside a Claude Code subprocess with the required packages pre-installed. The obvious control -- that external agent run directly on the same 25 topics, in the same pre-provisioned sandbox -- is missing. Without it I cannot attribute the reported gains to the 23-stage scaffold and the five mechanisms rather than to the underlying coding agent and to a better-provisioned environment. This is especially acute for Table 3, where the baselines score zero purely because their sandbox lacks the domain software.\"",
+      "fix": {
+        "kind": "requires-experiment",
+        "rationale_zh": "代价可控：把外部编码 agent 直接跑在 25 个 topic 上（25 次 run），使用与本系统相同的沙箱与预装依赖，按论文自述 $3--15/run 约 $75--375，1--2 天可完成。这是本轮性价比最高的补充实验，因为它同时回答审稿人最可能问的 'how much does the scaffold add?'。",
+        "proposed": "Add a row \"External coding agent only (same sandbox, same pre-installed stacks, single prompt containing the topic manifest)\" to Table 1 and Table 3, and report the scaffold's incremental contribution as the difference. If the science-domain gap is driven by pre-installed dependencies rather than by the pipeline, state this explicitly."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-013",
+      "severity": "major",
+      "category": "validity-criterion-not-prespecified",
+      "title_zh": "\"Valid\" 与 \"Completion\" 的判定标准没有前置定义，且两张表用了不同口径",
+      "summary_zh": "Table 2 的关键列叫 Valid，Table 5 的对应列叫 Completion，两者定义不同也不互相引用：Table 5 的 caption 定义了 Completion（'topics for which at least one rerun completed a manuscript'），但 Table 2 的 caption 完全没有定义 Valid，正文和 §4.1 的评测协议里也没有。读者只能从附录 Failure Analysis 反推：'11 of 13 invalid canonical HITL runs fail at stage 17 (\\texttt{paper\\_draft})'，即 valid 实际上等于 '通过了 Stage 17 的反造假硬闸'。\n\n这带来两个问题：(1) 判定标准是事后从失败模式反推的，不是前置声明的；(2) Stage 17 闸门是本系统的一个组件，用它来定义 '有效样本' 意味着有效性判定与被评系统耦合——附录自己写 'The stage-17 hard block is correct as a safety check but currently conflates heterogeneous causes'，即这个闸门把四类完全不同的失败（无 metric、依赖缺失、数据集加载失败、设计过于野心）合并成同一个 invalid 标签，而这四类对 mode 的敏感性显然不同。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 48,
+          "excerpt": "\\caption{End-to-end HITL ablation across 10 topics and 7 intervention regimes.\nPaper quality scored 1--10; accept $=$ score $\\geq 5$.}",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 700,
+          "excerpt": "11 of 13 invalid canonical HITL runs fail at stage 17 (\\texttt{paper\\_draft}). Stage 17 is the first hard anti-fabrication checkpoint and refuses to draft a paper when no usable metric exists upstream.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 709,
+          "excerpt": "The stage-17 hard block is correct as a safety check but currently conflates heterogeneous causes; we propose graceful degradation that surfaces upstream cause in the draft header and limitations.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 152,
+          "excerpt": "Completion counts topics for which at least one rerun completed a manuscript.",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "invalid run 计数交叉核对（这一项是自洽的，值得肯定）：\n  Table 2 的 invalid 数 = (10-8)+(10-10)+(10-8)+(10-7)+(10-10)+(10-8)+(10-6)\n                        = 2 + 0 + 2 + 3 + 0 + 2 + 4 = 13\n  附录 Failure Analysis 写 '11 of 13 invalid canonical HITL runs' -> 13 完全吻合。\n但 13 个 invalid 的 per-mode 归因未给出：附录只按失败阶段(stage 17)和四个子类型汇总，\n没有说明哪一个 mode 贡献了哪几个失败，因此无法判断 mode 与失败类型是否相关。\n口径差异：Table 2 用 'Valid'（单次运行是否通过 stage 17），\n         Table 5 用 'Completion'（3 次 rerun 中至少 1 次完成手稿），\n         二者不可直接对读，但正文 §4.5 让读者把两表对照阅读。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The Valid column drives every number in Table 2 but is never defined. From the appendix I infer it means 'passed the system's own Stage-17 anti-fabrication block', a gate that the authors themselves say 'conflates heterogeneous causes' ranging from missing metrics to a missing imblearn install. A validity criterion that is a component of the system under test, defined post hoc, and that merges unrelated failure causes, is not an acceptable basis for excluding runs from the primary metric.\"",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "在 §4.1 前置定义 valid，并给出 13 个 invalid run 的 mode x 失败子类型交叉表（数据已在附录素材里）。",
+        "proposed": "Add to Section 4.1: \"A run is counted as valid if it produces a complete manuscript, i.e. it passes the Stage-17 draft gate. We report the 13 invalid runs broken down by mode and failure subtype in Appendix G, and we note that this criterion is implemented by a component of the system under evaluation.\" Add the mode x failure-subtype cross-tabulation."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-014",
+      "severity": "major",
+      "category": "api-version-date-undisclosed",
+      "title_zh": "闭源模型只给名字不给快照版本与调用日期，结果永久不可复现",
+      "summary_zh": "论文依赖三个闭源模型：系统 backbone 'GPT-5.3-codex'、评委 'a Claude Code subagent (Opus~4.7)' 与 'a Codex CLI agent (GPT-5.4)'。三者都只给了产品名，没有 API 快照 ID、没有调用日期区间、没有 temperature / top-p / max_tokens 等解码参数（附录只说各 stage 有 max_tokens override，未给具体值）。\n\n对 LLM agent 系统论文，这是硬性可复现障碍：这些端点会被静默更新或下线，半年后任何人（包括作者）都无法确认自己复现的是不是同一个系统。\n\n值得注意的是，运行日期其实存在于仓库源码中，只是被注释掉了：'% The 9-topic audit uses RC runs ab-rc\\_full-T*-20260419/20260420-* and AISv2 runs from 20260420--20260421.'。把这句恢复到正文即可解决大半问题。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "All frameworks use the same LLM backbone (GPT-5.3-codex) and the same sandboxed execution environment with identical per-experiment time budgets.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 492,
+          "excerpt": "a Claude Code subagent (Opus~4.7), a Codex CLI agent (GPT-5.4), and a human expert",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 389,
+          "excerpt": "% \\paragraph{Source-run manifest.} The 9-topic audit uses RC runs \\texttt{ab-rc\\_full-T*-20260419/20260420-*} and AISv2 runs from \\texttt{20260420--20260421}. The full manifest, including run timestamps and configuration files, is shipped with the benchmark.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 118,
+          "excerpt": "Twenty-three stage-specific prompts, each comprising a system message, a structured user template, an optional \\texttt{json\\_mode} flag, and a \\texttt{max\\_tokens} override.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "R6.7 清点：\n  模型名          : 有 (GPT-5.3-codex / Opus 4.7 / GPT-5.4)\n  API 快照或版本号 : 无\n  调用日期区间    : 编译版本中无（仅存在于被注释的 source-run manifest，20260419--20260421）\n  temperature     : 全文 grep 无命中\n  top_p / seed    : 无\n  max_tokens 具体值: 无（只说有 override）\n  依赖版本锁定    : 无（附录称 Docker image 预装 '80+ scientific Python packages'，未给版本）\n对照该论文自己的 rubric：t01-exec-seeds 要求被测系统报告 seed 与离散度，但论文对自身 LLM 调用的确定性参数一项未报。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The paper depends on three closed-source endpoints identified only by product name. No snapshot version, no call dates, no decoding parameters. These endpoints are updated silently and retired; without dates and versions the results are not reproducible even in principle. The Docker image is described as containing '80+ packages' with no version pinning.\" 这条常出现在 reproducibility checklist 的扣分项里，修复成本几乎为零，不修很可惜。",
+      "fix": {
+        "kind": "mechanical",
+        "rationale_zh": "把已存在于源码注释里的运行日期恢复，并补上快照 ID 与解码参数、镜像 digest。属于填空级修改。",
+        "proposed": "Add to Section 4.1: \"All runs use GPT-5.3-codex (API snapshot <id>) executed between 2026-04-19 and 2026-04-21, with temperature <t>, top_p <p> and per-stage max_tokens as listed in Appendix B. Judges use Claude Opus 4.7 (snapshot <id>) and GPT-5.4 (snapshot <id>) over the same window. The evaluation Docker image is pinned at digest sha256:<...> and its full package manifest is released with the benchmark.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-015",
+      "severity": "major",
+      "category": "no-per-topic-results",
+      "title_zh": "25 个 topic 的主对比没有任何 per-topic 明细；源码中被注释掉的明细只覆盖 13 个 topic，且其中 4 个\"未展开到完整审计深度\"",
+      "summary_zh": "Table 1 用 4 个聚合数字支撑 headline，读者无法核查任何单个 cell，也无法判断 54.7% 的优势是均匀分布还是由少数 topic 主导。论文没有给出 per-topic 附录表，也没有给出得分分布或方差。\n\n仓库源码里存在这样一张表，但被整段注释掉了，且它只覆盖 13 个 topic：9 个 'audit subset'（T01,03,05,07,09,13,17,19,25）加 4 个 'sanity-check topics (not expanded to full audit depth)'（T11,15,21,23）。这意味着 25 个 topic 的审计深度并不统一，而 R4.4 要求判定标准前置且统一。被注释的 9-topic 子集里，RC 与 AISv2 的分差从 +0.025 到 +0.688 不等，跨度 27 倍，说明聚合均值确实掩盖了极大的 topic 间异质性。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 24,
+          "excerpt": "Table~\\ref{tab:arcbench-aggregate} reports mean scores across all 25 topics under the experiment-stage evaluation mode.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 374,
+          "excerpt": "% \\caption{ARC-Bench sanity-check topics (not expanded to full audit depth).}",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 352,
+          "excerpt": "% \\caption{ARC-Bench per-topic scores on the 9-topic audit subset. RC wins all 9.}",
+          "role": "supports"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 348,
+          "excerpt": "% \\paragraph{Per-topic results (audit subset).} Table~\\ref{tab:arcbench-pertopic} reports per-topic results for the 9-topic odd audit subset.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "被注释的 9-topic 子集（appendix.tex:359-367）的 delta 分布：\n  T01 +0.113, T03 +0.050, T05 +0.025, T07 +0.688, T09 +0.333,\n  T13 +0.200, T17 +0.450, T19 +0.525, T25 +0.180\n  min +0.025, max +0.688, 极差 0.663, 比值 27.5x ; 中位数 +0.200 ; 均值 +0.2960\n  子集均值: RC = (0.575+0.325+0.412+0.863+0.589+0.475+0.750+0.637+0.320)/9 = 4.946/9 = 0.5496\n           AISv2 = (0.463+0.275+0.387+0.175+0.256+0.275+0.300+0.112+0.140)/9 = 2.383/9 = 0.2648\n  该 9-topic 子集的 RC 均值 0.5496 与 Table 1 的 Overall 0.648（CoPilot）/0.596（Full-Auto）均不相符，\n  说明这张被注释的表与主表统计口径不同（可能是 results_only 或不同 mode），\n  而论文没有任何在编译版本里可核查的 per-topic 数据来消除这一歧义。\n覆盖率: 9 + 4 = 13 个 topic 有 per-topic 记录，占 25 的 52%；其余 12 个 topic 无任何明细。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Table 1 gives four aggregate numbers over 25 topics with no per-topic breakdown, no distribution and no variance, so I cannot tell whether the 54.7% advantage is broad or driven by a few topics. Please release the 4 x 25 score matrix.\" 若审稿人拿到源码（NeurIPS 常要求提交 supplementary），还会追问为什么 per-topic 表被注释掉、以及 4 个 topic 'not expanded to full audit depth' 是什么意思。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "如果 25 x 4 的分数矩阵已存在，恢复并补全即可（judgment，几小时）。若确有 12 个 topic 未按完整深度审计，则必须补齐审计（约 12 x 4 = 48 次 judge 调用，1 天内可完成）或明确声明主表只覆盖被完整审计的子集。",
+        "proposed": "Restore the per-topic appendix table and extend it to all 25 topics x 4 systems. State the audit depth applied to each topic, and if any topic was graded at reduced depth, either regrade it at full depth or exclude it from the main table and say so in the caption."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-016",
+      "severity": "major",
+      "category": "ablation-subset-misdescribed",
+      "title_zh": "HITL/消融所用 10 个 topic 的描述与 benchmark 的 topic 表互相矛盾，且消融完全没有覆盖科学领域任务",
+      "summary_zh": "附录 §HITL Ablation Details 写：'10 topics (T01--T10) span tabular ML, RL, MoE, NLP, physics-informed ML, and finance'。但同一份附录的 tab:arcbench-topics 里，T01--T10 是 dropout、ensemble、gradient-free optimisation、feature scaling on KNN、dimensionality reduction、adaptive LR schedules、text feature extraction、class imbalance、RandomForest tuning、cross-validation ——没有 RL、没有 MoE、没有 finance、没有 physics-informed ML。两处描述指向的显然不是同一批 topic。\n\n这直接影响 R2.4：读者无法确认消融跑在哪些任务上。按 topic 表的真实内容，10 个 topic 中至少 6 个属于 tabular ML 单一子类，代表性远低于附录声称的跨领域覆盖，而论文的机制主张（debate/self-healing/evolution）是面向一般科研任务的。\n\n此外，Table 3 的 20 个科学领域任务上没有任何组件消融——跨领域能力的归因（'domain-skill installation step closes this gap'）因此没有对照支撑。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 596,
+          "excerpt": "\\paragraph{Topic and mode design.} 10 topics (T01--T10) span tabular ML, RL, MoE, NLP, physics-informed ML, and finance.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 431,
+          "excerpt": "T01 & Dropout regularisation    & MC-Dropout, standard Dropout, no Dropout        & ECE / Accuracy \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 436,
+          "excerpt": "T10 & Cross-validation          & K-fold, stratified, leave-one-out              & Accuracy \\\\",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 416,
+          "excerpt": "Topics T01--T10 are shared with the HITL ablation, enabling end-to-end scenario from idea to paper.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 145,
+          "excerpt": "To isolate the contribution of each mechanism, we run a system-level ablation on the same 10 ARC-BENCH topics under Full-Auto mode.",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py + agent-read",
+        "recompute": "按 tab:arcbench-topics 归类 T01--T10：\n  Tabular ML : T01 dropout, T02 ensemble, T04 feature scaling, T08 class imbalance,\n               T09 RF tuning, T10 cross-validation  -> 6/10 = 60%\n  Optimisation: T03 gradient-free, T06 LR schedules -> 2/10 = 20%\n  Dim-reduction: T05 -> 1/10 ; Text: T07 -> 1/10\n  RL / MoE / finance / physics-informed ML: 0/10 = 0%\n附录声称的 6 个领域里有 4 个（RL, MoE, physics-informed ML, finance）在 topic 表中完全不存在。\n覆盖率: 消融覆盖 10/25 = 40% 的 ML topic，0/20 = 0% 的科学领域 task。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The appendix says the 10 ablation topics span 'tabular ML, RL, MoE, NLP, physics-informed ML and finance', but the benchmark's own topic table lists T01--T10 as dropout, ensembles, gradient-free optimisation, feature scaling, dimensionality reduction, LR schedules, text features, class imbalance, random-forest tuning and cross-validation. Six of the ten are tabular ML and none involve RL, MoE or finance. Which is it? And since the ablation never touches the 20 science-domain tasks, the claim that domain-specialised agents are what enables cross-domain coverage is untested.\"",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "描述性矛盾是 mechanical 级（改一句话）；但 '消融不覆盖科学领域' 需要补做，最小版本是在 3 个统计学任务上跑 w/o Debate 与 w/o Self-Healing 两行（约 6 次 run，半天），HEP/biology 的完整消融代价高，可写入 limitations。",
+        "proposed": "Correct the appendix sentence to match the topic table: \"10 topics (T01--T10) covering tabular ML (6), optimisation (2), dimensionality reduction (1) and text (1).\" Add to Limitations: \"The component ablation is run only on the 10 ML topics; the contribution of each mechanism on the 20 science-domain tasks is not isolated, and the cross-domain results should be read as a coverage demonstration rather than a mechanism attribution.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-017",
+      "severity": "minor",
+      "category": "baseline-tuning-unverified",
+      "title_zh": "没有证据表明基线经过同等调优，也没有与原论文报告值的对照（复现保真度不可核查）",
+      "summary_zh": "论文把两个基线换到 GPT-5.3-codex 上运行，但没有说明：基线的 prompt/超参是否按其原始配置或经过同等程度调优、换 backbone 是否损害了它们（AI Scientist v2 与 AIDE-ML 都是针对特定 backbone 调过 prompt 的系统）、以及复现出的水平与其原论文报告值是否吻合。\n\nTable 1 里 AI Scientist v2 的 Code Dev 只有 0.712，而其余三行都 $\\geq 0.938$，0.226 的断层没有任何解释。R1.5 要求复现值低于原报告值时给出解释；这里连 '原报告值是多少' 都没有出现，因此审稿人无法判断这是方法差距还是移植损伤。",
+      "locations": [
+        {
+          "file": "sections/experiment.tex",
+          "line": 17,
+          "excerpt": "All frameworks use the same LLM backbone (GPT-5.3-codex) and the same sandboxed execution environment with identical per-experiment time budgets. This controlled setup isolates the contribution of system design from backbone capability.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 40,
+          "excerpt": "AI Scientist v2       & 0.712 & 0.442 & 0.261 & 0.419 \\\\",
+          "role": "supports"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 71,
+          "excerpt": "All systems score above 0.70 on Code Development, with AIDE-ML (0.958) nearly matching \\system{} (0.968).",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py",
+        "recompute": "Code Dev 列的断层：\n  ARC CoPilot 0.968, ARC Full-Auto 0.938, AIDE-ML 0.958, AI Scientist v2 0.712\n  前三者极差 = 0.968-0.938 = 0.030 ; AISv2 与最近者的差 = 0.938-0.712 = 0.226，为前者的 7.5 倍\n  Code Dev 在 overall_strict 中权重 0.25，故该断层直接贡献 0.25*0.226 = 0.0565 的 Overall 差，\n  占 CoPilot 对 AISv2 全部优势 (0.648-0.419 = 0.229) 的 24.7%。\n论文对这 24.7% 的来源未作任何说明（既未说是方法差异，也未说是移植/prompt 适配差异）。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"Both baselines are re-run under a backbone they were not designed for, with no statement about prompt or hyperparameter adaptation and no comparison against the numbers reported in their original papers. AI Scientist v2's Code Development score of 0.712 is an outlier by 0.226 and accounts for a quarter of the headline gap; is this a real capability difference or a porting artefact?\" 这条属于可辩护的取舍 —— 统一 backbone 本身是好设计 —— 但缺少保真度证据会被记一笔。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "无需重跑：补一段说明基线的配置来源（原仓库默认 / 作者适配了哪些 prompt），并给出一次 sanity check（例如在 1--2 个 topic 上用基线原始 backbone 复现，确认量级），成本很低。",
+        "proposed": "Add to Section 4.1: \"Baselines are run with their released default configurations, with only the backbone endpoint changed; we did not tune their prompts. As a fidelity check we additionally ran both baselines on N topics with their originally recommended backbone and observed scores within X of the GPT-5.3-codex results, indicating that the substitution does not materially penalise them.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-018",
+      "severity": "minor",
+      "category": "metric-definition-ambiguity",
+      "title_zh": "两处关键指标定义不自洽：主表用 strict 还是 results-only 说法冲突；\"intervention\" 的计数口径表文不一",
+      "summary_zh": "(1) §4.1 说 strict judge 按 'CD:CE:RA = 25:25:50' 打分，Table 1 的 caption 也这么写，而且四行 Overall 都能由该权重精确复算。但附录 §ARC-Bench Details 写 'Under results-only mode (default for framework comparison), CD leaves are excluded from aggregation'，并给了 results\\_only = sum(CE,RA)/75 的公式。'framework comparison 的默认模式' 与 Table 1 实际使用的模式相互矛盾，读者无法确定 0.648 到底是哪个量。\n(2) Table 2 的 Interventions 列是 0/3/6/8/23/3/3，与 tab:mode-mapping 的 stage 数一致；但正文写 'CoPilot ... with 19 targeted interventions. Step-by-Step requires 29 interventions'。同一个概念在表里和正文里差了 13 与 6。由于论文用 intervention 数作为人力成本指标来论证 'CoPilot 用更少介入拿到更好结果'，这个口径必须唯一。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 481,
+          "excerpt": "Under results-only mode (default for framework comparison), CD leaves are excluded from aggregation.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 29,
+          "excerpt": "\\caption{\\bench{} experiment-stage results (25 topics, CD:CE:RA = 25:25:50).}",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 133,
+          "excerpt": "CoPilot achieves the highest mean paper-quality score (7.27) and accept rate (87.5\\%) with 19 targeted interventions. Step-by-Step requires 29 interventions but achieves only 5.19 and 50\\%.",
+          "role": "contradicts"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 58,
+          "excerpt": "\\textbf{CoPilot} & 8/10  & \\textbf{7.27} & \\textbf{87.5\\%} & 6 \\\\",
+          "role": "contradicts"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py",
+        "recompute": "(1) 用 overall_strict 权重复算 Table 1 的 Overall 列：\n  CoPilot   0.25*0.968 + 0.25*0.578 + 0.50*0.523 = 0.64800  (印 0.648) ✓\n  Full-Auto 0.25*0.938 + 0.25*0.562 + 0.50*0.442 = 0.59600  (印 0.596) ✓\n  AIDE-ML   0.25*0.958 + 0.25*0.415 + 0.50*0.336 = 0.51125  (印 0.511) ✓\n  AISv2     0.25*0.712 + 0.25*0.442 + 0.50*0.261 = 0.41900  (印 0.419) ✓\n  -> Table 1 用的是 overall_strict（含 CD），与附录 'results-only 是 framework comparison 默认' 矛盾。\n  若真按 results_only = (25*CE + 50*RA)/75 计算：\n    CoPilot (25*0.578+50*0.523)/75 = (14.45+26.15)/75 = 0.5413\n    AISv2   (25*0.442+50*0.261)/75 = (11.05+13.05)/75 = 0.3213\n    相对优势 = (0.5413-0.3213)/0.3213 = 68.5%，而非论文 headline 的 54.7%。\n    两种口径给出两个不同的 headline 数字，论文必须指明用的是哪一个。\n(2) intervention 计数：表 6 vs 正文 19（差 13）；表 23 vs 正文 29（差 6）。\n    tab:mode-mapping 的 CoPilot 阶段集合 {5,8,9,14,17,20} 恰为 6 个，Step-by-Step 为全部 23 个阶段，\n    说明表列的是 stage 数，正文可能是 10 个 topic 上的实际触发次数或含 smart pause 的总数，但从未说明。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The appendix states that results-only is the default aggregation for framework comparison, but Table 1's Overall column reproduces exactly under the strict CD:CE:RA=25:25:50 weighting. Under results-only the headline advantage would be 68.5%, not 54.7%. Similarly, the Interventions column lists 6 for CoPilot while the text says 19, and 23 versus 29 for Step-by-Step. Please define each metric once and use it consistently.\" 这类口径不一致会削弱审稿人对全部数字的信任。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "只需统一措辞：说明 Table 1 用 overall_strict，并把 intervention 定义成一种口径（建议用实际触发次数并同时给 stage 数）。",
+        "proposed": "In Section 4.1 state: \"Table 1 reports overall_strict (Eq. 1), i.e. the CD:CE:RA = 25:25:50 weighting; results_only (Eq. 2) is used only for the auxiliary analyses in Appendix D.\" In Table 2, rename the column to \"Intervention stages\" and report actual trigger counts separately, e.g. \"6 stages / 19 triggers across 10 topics\"."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-019",
+      "severity": "minor",
+      "category": "design-space-sweep-underreported",
+      "title_zh": "设计空间扫描（K、半衰期）只给相对百分比与定性结论，无绝对数值、无方差、未与主指标挂钩",
+      "summary_zh": "附录 §Design-Space Exploration 是 R2.6 要求的参数扫描，值得肯定它存在。但报告方式无法核查：$K \\in \\{2,3,5\\}$ 的结论是 '$K{=}2$ ... $-23\\%$ hypothesis diversity'、'$K{=}5$ raises tokens by $+67\\%$ for only $+8\\%$ diversity'，全部是相对百分比，没有 'hypothesis diversity' 的定义与绝对值，没有离散度，没有说明这 10 runs each 跑在哪些 topic 上，也没有报告 K 对最终 quality/accept 的影响——而 quality 才是全文的主指标。\n半衰期扫描 $T_{1/2} \\in \\{7,15,30,60,\\infty\\}$ 只有定性描述（'gave the best quality trajectory'），连相对数字都没有。这意味着 $K{=}3$ 与 $T_{1/2}{=}30$ 这两个贯穿全文的默认值，其选择依据不可复核。",
+      "locations": [
+        {
+          "file": "sections/appendix.tex",
+          "line": 621,
+          "excerpt": "\\paragraph{Number of debate agents ($K$).}\nWe tested $K \\in \\{2, 3, 5\\}$ across 10 runs each. $K{=}2$ degenerates into a\npro/con dynamic with $-23\\%$ hypothesis diversity. $K{=}5$ raises tokens by $+67\\%$\nfor only $+8\\%$ diversity over $K{=}3$",
+          "role": "primary"
+        },
+        {
+          "file": "sections/appendix.tex",
+          "line": 629,
+          "excerpt": "We tested $T_{1/2} \\in \\{7, 15, 30, 60, \\infty\\}$ days. $T_{1/2}{=}7$ expires\nuseful lessons too fast; $T_{1/2}{=}\\infty$ accumulates contradictory advice past\n15 runs. $T_{1/2}{=}30$ gave the best quality trajectory, persisting long enough to\ninfluence 3--5 subsequent runs while gradually fading.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/system.tex",
+          "line": 132,
+          "excerpt": "where $\\Delta t$ is the elapsed time since the lesson was recorded and $T_{1/2}$ is a half-life hyperparameter controlling how quickly older lessons lose influence (default $T_{1/2} = 30$ days).",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "agent-read",
+        "recompute": "可核查项清点：\n  K 扫描: 相对数 3 个 (-23%, +67%, +8%) ; 绝对数 0 个 ; 方差 0 ; 主指标(quality/accept) 影响 未报\n  T_1/2 扫描: 相对数 0 个 ; 绝对数 0 个 ; 只有 '3--5 subsequent runs' 一个定性范围\n  'hypothesis diversity' 指标定义: 全文未定义\n  扫描所用 topic: 未说明（只说 '10 runs each'）\n样本量: 每个 K 取值 10 runs，与主表同一量级；按 P2-RIGOR-008 的分析，\n  n=10 下 +8% 的相对差异远在噪声范围内，却被用来排除 K=5。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人会写：\"The hyperparameter sweeps report only relative percentages of an undefined 'hypothesis diversity' metric, with no absolute values, no variance and no link to the primary quality metric, on 10 runs per setting. The two design constants used throughout the paper (K=3, half-life 30 days) are therefore not justified in a checkable way.\" 属于扣印象分而非致命，但补起来很便宜。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "定义 diversity 指标、给出绝对值与离散度、补上 K 对 quality/accept 的影响。数据应已存在于扫描日志。",
+        "proposed": "Define the diversity metric explicitly, and report a table with absolute values and dispersion: K, mean diversity +- s.d., mean tokens per run, mean quality, accept rate, over the N topics used. Do the same for the half-life sweep, or state that the half-life was chosen a priori and not tuned."
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    },
+    {
+      "id": "P2-RIGOR-020",
+      "severity": "minor",
+      "category": "relative-improvement-framing",
+      "title_zh": "在 [0,1] 有界 rubric 分上用相对提升幅度做 headline（54.7% / 100.4%），属可辩护的取舍但会被读作放大",
+      "summary_zh": "摘要、引言、结论三处都用 'outperforms AI Scientist v2 by 54.7\\%'，正文还有 'a 100.4\\% relative improvement'。这些百分比在算术上都正确，但它们是有界 rubric 分（0--1）上的相对差，分母越小放大越厉害：Result Analysis 那一项之所以有 100.4%，主要是因为基线只有 0.261。绝对差分别是 0.229 与 0.262。\n\n这是**设计选择**而非错误——很多系统论文都这么写。但在一个 headline 只报相对值、而主表分数带宽有限的语境下，审稿人容易读成刻意放大，尤其是当同一篇论文的失败计零口径（见 P2-RIGOR-006）也在往同一方向推的时候。是否调整由作者判断。",
+      "locations": [
+        {
+          "file": "main.tex",
+          "line": 148,
+          "excerpt": "On \\bench, a 25-topic experiment-stage benchmark, \\system{} outperforms AI Scientist v2 by 54.7\\%.",
+          "role": "primary"
+        },
+        {
+          "file": "sections/experiment.tex",
+          "line": 69,
+          "excerpt": "The performance gap is most pronounced on Result Analysis, where \\system{} (CoPilot) scores 0.523 against AI Scientist v2's 0.261, a 100.4\\% relative improvement.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/intro.tex",
+          "line": 34,
+          "excerpt": "On this benchmark, \\system{} outperforms AI Scientist v2 by 54.7\\%.",
+          "role": "supports"
+        },
+        {
+          "file": "sections/conclusion.tex",
+          "line": 6,
+          "excerpt": "On \\bench, \\system{} outperforms AI Scientist v2 by 54.7\\%",
+          "role": "supports"
+        }
+      ],
+      "evidence": {
+        "collector": "bin/tables.py",
+        "recompute": "相对值复算（论文数字算术上正确）：\n  (0.648 - 0.419)/0.419 = 0.54654 -> 54.7% ✓\n  (0.648 - 0.511)/0.511 = 0.26810 -> 26.8% ✓\n  (0.523 - 0.261)/0.261 = 1.00383 -> 100.4% ✓\n对应的绝对差与量表占比（rubric 分域 [0,1]）：\n  Overall: 0.648-0.419 = 0.229，占满分的 22.9 个百分点\n  Overall vs AIDE-ML: 0.648-0.511 = 0.137，占满分的 13.7 个百分点\n  Result Analysis: 0.523-0.261 = 0.262，占满分的 26.2 个百分点\n注意本方法自身的绝对水平也不高：Overall 0.648、Result Analysis 0.523、\n  Table 3 的 HEP-ph 仅 0.489 —— 相对提升的表述会掩盖 '双方都远未做好' 这一事实。",
+        "evidence_dir_used": false
+      },
+      "reviewer_impact_zh": "审稿人可能写：\"The abstract leads with a 54.7% improvement; in absolute terms this is 0.648 versus 0.419 on a bounded 0--1 rubric, and the proposed system's own Result Analysis score is 0.523, i.e. both systems are far from solving the benchmark. Reporting relative gains on a bounded score inflates the perceived margin.\" 这是可辩护的取舍，作者可以选择保留；但同时给出绝对分几乎没有成本，且能显著降低被这样读的概率。",
+      "fix": {
+        "kind": "judgment",
+        "rationale_zh": "建议在 headline 处同时给绝对值，把 '相对提升' 与 '绝对水平' 一起呈现，主动承认距离 benchmark 饱和还很远。",
+        "proposed": "Rephrase the abstract sentence as: \"On ARC-Bench, AutoResearchClaw scores 0.648 overall against 0.419 for AI Scientist v2 (+0.229 absolute, +54.7% relative); both systems remain far from the rubric ceiling, and the strongest remaining weakness for all systems is result analysis.\""
+      },
+      "tier": "P2-RIGOR",
+      "verdict": ""
+    }
+  ],
+  "passed": [
+    {
+      "check": "R1.2",
+      "status": "pass",
+      "note_zh": "同 backbone、同沙箱、同 per-experiment 时间预算，并明确说明这样做的目的是把系统设计与 backbone 能力分离。这是本文实验设计中控制得最扎实的一项，应予保留和强调。（注意：这只覆盖 backbone 与环境，不覆盖尝试次数/token 预算，见 P2-RIGOR-010。）",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 17
+      },
+      "excerpt": "All frameworks use the same LLM backbone (GPT-5.3-codex) and the same sandboxed execution environment with identical per-experiment time budgets. This controlled setup isolates the contribution of system design from backbone capability."
+    },
+    {
+      "check": "R4.1",
+      "status": "pass",
+      "note_zh": "best-of-N 协议被明确披露，位置正确（就在消融表之前），措辞清晰，并主动提醒读者不要把它与单次运行的 HITL 结果混读。Table 5 的 caption 还进一步写明是 'best-of-3 protocol over three reruns per configuration--topic pair'。这是本文在选择性报告维度上做得最好的一处。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 148
+      },
+      "excerpt": "We therefore adopt a best-of-$N$ protocol; Full-Auto numbers in this ablation reflect this setting and should be read against Table~\\ref{tab:component-abl} rather than the single-run HITL results."
+    },
+    {
+      "check": "R2.1",
+      "status": "pass",
+      "note_zh": "组件消融严格做到每行只移除一个机制（Debate / Self-Healing / Evolution / Verification），并在正文明说 'Each row in Table 5 removes one mechanism and keeps the others intact'。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 145
+      },
+      "excerpt": "we run a system-level ablation on the same 10 ARC-BENCH topics under Full-Auto mode. Each row in Table~\\ref{tab:component-abl} removes one mechanism and keeps the others intact."
+    },
+    {
+      "check": "R2.2",
+      "status": "pass",
+      "note_zh": "移除后的配置仍是可运行的完整系统（w/o Verification 行仍完成 10/10 并拿到 5.48），没有被故意打残。更值得肯定的是作者主动给该行加了 ‡ 标注 'Score inflated by removing the verification gate'，并在正文说明 5 篇 accept 中有 3 篇含未经测量的数字——这是对自己有利数字的主动降权，属于诚实报告。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 173
+      },
+      "excerpt": "Removing the verified registry raises apparent acceptance from 3/10 to 5/10, but manual inspection reveals that 3 of those 5 papers contain values absent from any measurement record."
+    },
+    {
+      "check": "R2.3",
+      "status": "partial",
+      "note_zh": "存在联合移除行（w/o Debate \\& Healing），并给出了超可加性的解释，方向正确。但 4 个单组件的 6 种两两组合只做了 1 种，交互项覆盖率 1/6；若无法补齐，建议在正文限定表述范围。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 164
+      },
+      "excerpt": "\\quad w/o Debate \\& Healing & 4/10           & 3.47          & 0/4                       & \\xmark \\\\"
+    },
+    {
+      "check": "R4.3",
+      "status": "partial",
+      "note_zh": "被丢弃运行的总数可核查且自洽：Table 2 各行 invalid 数之和 = 2+0+2+3+0+2+4 = 13，与附录 '11 of 13 invalid canonical HITL runs fail at stage 17' 完全吻合；附录还给出了四类失败子类型。缺的是 mode x 失败类型的交叉表（见 P2-RIGOR-013）。",
+      "location": {
+        "file": "sections/appendix.tex",
+        "line": 700
+      },
+      "excerpt": "11 of 13 invalid canonical HITL runs fail at stage 17 (\\texttt{paper\\_draft})."
+    },
+    {
+      "check": "R5.7",
+      "status": "pass",
+      "note_zh": "评测 rubric 与 prompt 的公开程度显著高于同类论文：附录给出完整的 T01 rubric（含每个叶子的权重与判分说明）、聚合公式 (Eq.1/Eq.2)、strict judge 的四条判分准则、timeout 规则、23 个 stage 的 prompt 结构与两个 deep dive。这让本报告中的多条问题得以被外部核查——本身就是好实践的证据。",
+      "location": {
+        "file": "sections/appendix.tex",
+        "line": 515
+      },
+      "excerpt": "  title={ARC-Bench Sample Rubric \\textemdash{} T01: Dropout Regularization \\& Calibration},"
+    },
+    {
+      "check": "R6.1",
+      "status": "pass",
+      "note_zh": "代码仓库地址在 metadata 中直接给出（https://github.com/aiming-lab/AutoResearchClaw），且多处承诺 topics.yaml、rubrics/T*.json、run manifest 随 benchmark 一并发布。",
+      "location": {
+        "file": "main.tex",
+        "line": 154
+      },
+      "excerpt": "\\metadata[Github]{\\url{https://github.com/aiming-lab/AutoResearchClaw}}"
+    },
+    {
+      "check": "R6.2",
+      "status": "partial",
+      "note_zh": "关键结构性超参数都给了：debate K=3、复杂度阈值 tau=0.6、max refines N_r=10、max pivots N_p=2、半衰期 T_1/2=30 天、沙箱 8GB/2GB shm/300--600s 超时、章节字数目标。缺的是 LLM 解码参数（temperature/top_p/max_tokens 具体值），见 P2-RIGOR-014。",
+      "location": {
+        "file": "sections/appendix.tex",
+        "line": 64
+      },
+      "excerpt": "\\REQUIRE Research idea $\\mathcal{I}$, lesson store $\\mathcal{L}$, max pivots $N_p{=}2$, max refines $N_r{=}10$"
+    },
+    {
+      "check": "R6.3",
+      "status": "partial",
+      "note_zh": "算力披露对 LLM agent 论文来说是合适的形式：沙箱资源上限（8GB 内存、2GB shm、300--600s 墙钟）、topic 选择标准要求 'CPU-executable in under 10 minutes on a single core'、以及每次运行 $3--15 的成本区间。缺总 run 数与总成本。",
+      "location": {
+        "file": "sections/appendix.tex",
+        "line": 764
+      },
+      "excerpt": "In our current implementation, each run costs approximately \\$3--15 in LLM usage, which makes large-scale misuse nonzero but still resource-constrained."
+    },
+    {
+      "check": "R3.6",
+      "status": "partial",
+      "note_zh": "效应量与显著性同时出现（'$-1.37$, $p{=}0.003$'），方向正确；其余消融行也给了绝对效应量（-0.48 quality, -1 completion）。缺的是检验描述与其余行的 p 值，见 P2-RIGOR-009。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 170
+      },
+      "excerpt": "Multi-agent debate is the largest quality contributor ($-1.37$, $p{=}0.003$)"
+    },
+    {
+      "check": "numeric-consistency (Table 1)",
+      "status": "pass",
+      "note_zh": "Table 1 的 Overall 列在 CD:CE:RA=25:25:50 权重下四行全部精确复算通过（0.64800/0.59600/0.51125/0.41900，最大偏差 0.00025，为四舍五入）。这张表内部是自洽的——与 Table 3 的 Overall 列形成鲜明对比（见 P2-RIGOR-005）。",
+      "location": {
+        "file": "sections/experiment.tex",
+        "line": 37
+      },
+      "excerpt": "\\system{} (CoPilot)   & 0.968 & 0.578 & 0.523 & \\textbf{0.648} \\\\"
+    },
+    {
+      "check": "honest-negative-reporting",
+      "status": "pass",
+      "note_zh": "论文多处主动报告对自己不利的事实：case study 完整披露自家 Full-Auto 在 T10 上的 silent semantic collapse；§4.3 承认 HEP-ph 只有 0.489 并说明扣分原因；附录 Writing-Quality Audit 逐条列出自家产物的导出缺陷（20/20 abstract 位置错、17/20 图注被提升为 section、编译通过率仅 7/10）。这类自曝在同类论文中不多见，应当保留——它也是 P2-RIGOR-003/004 建议的修复能站得住的基础。",
+      "location": {
+        "file": "sections/appendix.tex",
+        "line": 718
+      },
+      "excerpt": "We audited 20 canonical \\texttt{full-auto} + \\texttt{step-by-step} deliverables across T01--T10 for export defects:"
+    }
+  ],
+  "notes_zh": [
+    "所有数值复算均以 python3 实算，算式完整写在各 finding 的 evidence.recompute 中。",
+    "本报告只使用论文仓库内的 .tex 源文件与 final/facts/ 的采集结果；未读取任何评审意见或既有报告文件。",
+    "仓库源码中有被注释掉的段落（appendix.tex 的 per-topic 表、Judge and Rubric Issues、source-run manifest）。它们不在编译出的 PDF 里，因此不构成论文的主张；本报告仅把它们作为佐证使用，并且在多处指出：其中的内容恰好就是修复相应缺陷所需的文本，恢复成本很低。",
+    "跨 tier 提示（不属于 P2，但已在复算中撞到，建议转给 P0-INTEG / P1-CLAIM）：(a) Table 2 的 Interventions 列 6/23 与正文 19/29 数值冲突；(b) 正文称 Gate-Only 'is the only mode achieving 10/10 validity'，但 Step-by-Step 同为 10/10；(c) Table 3 的 Overall 列三行均无法由 caption 声明的规则复算（本报告已作为 P2-RIGOR-005 处理）。"
+  ]
+}
