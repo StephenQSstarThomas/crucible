@@ -25,7 +25,7 @@ STAGES = [
     ("render",    ["render.py"],    False),   # needs a TeX engine; optional
     ("tables",    ["tables.py"],    True),
     ("refs",      ["refs.py"],      True),
-    ("numbers",   ["numbers.py"],   True),
+    ("numbers",   ["numledger.py"], True),
     ("figures",   ["figures.py"],   False),
     ("forensics", ["forensics.py"], True),
 ]

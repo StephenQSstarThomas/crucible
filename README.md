@@ -42,6 +42,16 @@ python3 bin/collect.py ~/paper -o crucible-out --venue neurips-2026
 
 ---
 
+跑一遍自检：
+
+```bash
+tests/smoke.sh ~/AutoClaw_for_NIPS.zip neurips-2026
+```
+
+一份真实的输出样例在 `examples/`：
+[审查报告](examples/AutoResearchClaw-REPORT.md) ·
+[Desk-reject 风险卡](examples/AutoResearchClaw-DESK_RISK_CARD.md)
+
 ## 为什么不是又一个 latex linter
 
 因为 linter 查的是源码，审稿人看的是 PDF。
@@ -130,7 +140,7 @@ bin/                     确定性采集器（只出事实，不下判断）
   ingest.py                \input 树、章节、浮动体、宏、行号映射
   render.py                tectonic 编译、日志解析、逐页 PNG、PDF 文本层
   tables.py                LaTeX tabular → 可寻址网格（表内算术复算的基础）
-  numbers.py               数值账本 + 锚定检查（正文数字 vs 它引用的表）
+  numledger.py             数值账本 + 锚定检查（正文数字 vs 它引用的表）
   refs.py                  引用/标签/图片 双向差集
   figures.py               版面实测 DPI、色盲模拟、感知哈希查重、300dpi 裁切
   forensics.py             末位数字、Benford、重复行、小分母 —— 红旗非证据
@@ -140,6 +150,8 @@ skills/
   crucible-report/         报告渲染规范
 agents/                  15 个 subagent
 venues/                  会场规则数据（带 verified_on 时效字段）
+examples/                真实论文的审查报告样例
+tests/smoke.sh           自检：跑完全部采集器并断言事实文件结构
 ```
 
 ## 输出

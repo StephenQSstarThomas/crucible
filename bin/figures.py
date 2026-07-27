@@ -30,7 +30,7 @@ CVD_MATRICES = {
 def phash(img, size: int = 16) -> str:
     """Average-hash for near-duplicate figure detection (I6.1/I6.2)."""
     g = img.convert("L").resize((size, size))
-    px = list(g.getdata())
+    px = list(g.tobytes())          # mode "L" -> one byte per pixel
     avg = sum(px) / len(px)
     bits = "".join("1" if p > avg else "0" for p in px)
     return f"{int(bits, 2):0{size * size // 4}x}"
@@ -59,7 +59,8 @@ def palette_signature(img, n: int = 6) -> list[tuple[str, float]]:
     small = img.convert("RGB").resize((120, 120))
     counts = defaultdict(int)
     total = 0
-    for r, g, b in small.getdata():
+    raw = small.tobytes()           # mode "RGB" -> three bytes per pixel
+    for r, g, b in zip(raw[0::3], raw[1::3], raw[2::3]):
         mx, mn = max(r, g, b), min(r, g, b)
         if mx < 40 or mx - mn < 45:      # ignore black/white/grey structure
             continue
@@ -100,6 +101,61 @@ def cvd_collapse(img) -> dict:
         out[kind] = {"distinct_colours_before": len(base),
                      "distinct_colours_after": len(s)}
     return out
+
+
+def estimate_text_pt(crop_path: Path, crop_dpi: int) -> dict:
+    """Estimate the smallest rendered text size in a raster figure.
+
+    Effective DPI alone is not legibility. A screenshot pasted into a figure
+    can measure 700+ dpi and still print at 1pt, because what matters is how
+    large the glyphs are AFTER the whole figure is scaled into the column.
+
+    Method: horizontal dark-pixel projection finds contiguous runs of ink
+    rows; each run approximates one text line's cap height. The crop is
+    rendered at a known dpi, so px -> points is exact.
+    """
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        return {"available": False}
+    try:
+        a = np.array(Image.open(crop_path).convert("L"))
+    except Exception as e:
+        return {"available": False, "error": str(e)}
+
+    H, W = a.shape
+    dark = a < 128
+    runs, cur = [], 0
+    for v in dark.sum(axis=1):
+        if v > max(2, W * 0.002):
+            cur += 1
+        elif cur:
+            runs.append(cur)
+            cur = 0
+    if cur:
+        runs.append(cur)
+    runs = sorted(r for r in runs if 2 <= r <= H * 0.2)
+    if not runs:
+        return {"available": True, "n_text_lines": 0}
+
+    def to_pt(px):
+        return round(px / crop_dpi * 72.0, 2)
+
+    med = runs[len(runs) // 2]
+    p10 = runs[max(0, int(len(runs) * 0.10))]
+    return {
+        "available": True,
+        "n_text_lines": len(runs),
+        "min_line_pt": to_pt(runs[0]),
+        "p10_line_pt": to_pt(p10),
+        "median_line_pt": to_pt(med),
+        "max_line_pt": to_pt(runs[-1]),
+        # p10 rather than min: a single speck should not condemn a figure,
+        # but if a tenth of all text lines are sub-6pt it is unreadable.
+        "illegible": to_pt(p10) < 6.0,
+        "severely_illegible": to_pt(med) < 4.0,
+    }
 
 
 def main():
@@ -205,6 +261,10 @@ def main():
                     except Exception:
                         pass
 
+                    measured = ({} if not crop_name else
+                                estimate_text_pt(cropdir / crop_name,
+                                                 args.crop_dpi))
+
                     placed.append({
                         "page": pno,
                         "bbox_pt": [round(v, 1) for v in bbox],
@@ -216,6 +276,8 @@ def main():
                         "text_layer_sizes_pt": sorted(set(spans))[:12],
                         "min_text_pt": min(spans) if spans else None,
                         "has_text_layer": bool(spans),
+                        # for rasters this is the only legibility signal
+                        "measured_text": measured,
                         "crop": f"figures/{crop_name}" if crop_name else None,
                     })
             doc.close()
@@ -249,6 +311,9 @@ def main():
         "low_dpi_placed": [p for p in placed if p["below_300dpi"]],
         "small_text_placed": [p for p in placed
                               if p["min_text_pt"] and p["min_text_pt"] < 6.0],
+        "illegible_raster_text": [
+            p for p in placed
+            if (p.get("measured_text") or {}).get("illegible")],
         "captions": captions,
     }
     write_json(facts / "figures.json", out)
@@ -263,6 +328,12 @@ def main():
         flag = "  <-- BELOW 300 DPI" if p["below_300dpi"] else ""
         print(f"  p{p['page']:>2d} placed {p['width_in']}in wide, "
               f"{p['px_width']}px -> {p['effective_dpi']} dpi{flag}")
+        mt = p.get("measured_text") or {}
+        if mt.get("n_text_lines"):
+            mark = "  <-- ILLEGIBLE" if mt.get("illegible") else ""
+            print(f"       text lines: {mt['n_text_lines']}, "
+                  f"p10={mt['p10_line_pt']}pt median={mt['median_line_pt']}pt"
+                  f"{mark}")
     if dupes:
         print(f"  ! {len(dupes)} near-duplicate figure pair(s):")
         for d in dupes:
