@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crucible.local/contracts/finding.schema.json",
+  "title": "CRUCIBLE Finding",
+  "description": "One defect found in a manuscript. Every finding must be locatable and, if numeric, recomputable (Axiom 2).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tier", "severity", "category", "title_zh", "summary_zh", "locations", "evidence", "verdict"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^(P0-BUILD|P0-INTEG|P0-SURF|P1-CLAIM|P2-RIGOR|P3-DEF|P4-PRES|P5-PANEL|V-VENUE)-[0-9]{3}$",
+      "description": "Tier-prefixed stable id, e.g. P0-INTEG-003."
+    },
+    "tier": {
+      "enum": ["P0-BUILD", "P0-INTEG", "P0-SURF", "P1-CLAIM", "P2-RIGOR", "P3-DEF", "P4-PRES", "P5-PANEL", "V-VENUE"]
+    },
+    "severity": {
+      "enum": ["blocker", "major", "minor", "nit"],
+      "description": "blocker = 投出去会被当场拒或撤稿级; major = 审稿人一定会写进 weakness; minor = 会扣印象分; nit = 可改可不改。"
+    },
+    "category": {
+      "type": "string",
+      "description": "kebab-case defect type, e.g. numeric-contradiction, stale-value, unsupported-claim, missing-ablation, figure-illegible, hallucinated-citation.",
+      "maxLength": 48
+    },
+    "title_zh": { "type": "string", "maxLength": 80, "description": "一句话标题，中文。" },
+    "summary_zh": { "type": "string", "description": "缺陷是什么、为什么是缺陷。中文叙述，引用的原文保持英文。" },
+
+    "locations": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every place this defect manifests. First entry is the primary anchor.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "line"],
+        "properties": {
+          "file": { "type": "string", "description": "Repo-relative path, e.g. sections/experiment.tex" },
+          "line": { "type": "integer", "minimum": 1 },
+          "excerpt": { "type": "string", "description": "Verbatim source text, English, unmodified." },
+          "role": {
+            "enum": ["primary", "contradicts", "supports", "duplicate"],
+            "description": "For contradictions: which side of the contradiction this location is."
+          }
+        }
+      }
+    },
+
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collector"],
+      "properties": {
+        "collector": {
+          "type": "string",
+          "description": "Which bin/ script produced the underlying facts, or 'agent-read' when the finding is a judgment over prose that no script can produce."
+        },
+        "recompute": {
+          "type": "string",
+          "description": "REQUIRED for any numeric finding. The full arithmetic, showing what was computed, from what, and how it differs from what the paper prints. Axiom 2."
+        },
+        "raw": {
+          "type": "object",
+          "description": "Structured excerpt of the collector output this finding rests on.",
+          "additionalProperties": true
+        },
+        "evidence_dir_used": {
+          "type": "boolean",
+          "default": false,
+          "description": "True when --evidence artifacts were consulted. Only then may a finding assert fabrication rather than mere inconsistency."
+        }
+      }
+    },
+
+    "verdict": {
+      "enum": ["CONFIRMED", "PLAUSIBLE", "REFUTED"],
+      "description": "Set by crucible-verifier (Axiom 3). REFUTED findings are dropped from the report and retained only in findings.json for audit."
+    },
+    "refutation_attempt": {
+      "type": "string",
+      "description": "What the verifier tried in order to kill this finding, and why it survived (or didn't)."
+    },
+
+    "reviewer_impact_zh": {
+      "type": "string",
+      "description": "如果不改，审稿人会怎么写这条 weakness。用来判断值不值得花时间。"
+    },
+
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["mechanical", "judgment", "requires-experiment", "unfixable-before-deadline"],
+          "description": "mechanical = 唯一正确答案，agent 可直接应用; judgment = 涉及数字/主张/论证，产出补丁待批准; requires-experiment = 需要补跑实验; unfixable-before-deadline = 只能在 limitations 里认。"
+        },
+        "auto_applied": { "type": "boolean", "default": false },
+        "proposed": { "type": "string", "description": "Replacement text or patch body. English, paste-ready." },
+        "rationale_zh": { "type": "string", "description": "为什么这样改。" },
+        "patch_file": { "type": "string", "description": "Path under crucible-out/patches/ when kind != mechanical." }
+      }
+    },
+
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Finding ids that must be resolved first (e.g. a claim fix that depends on a numeric fix)."
+    }
+  }
+}

@@ -1,0 +1,70 @@
+slug: neurips-2026
+name: NeurIPS 2026 (Main Track)
+kind: conference
+
+# ---- 篇幅 ----
+content_pages: 9
+counts_toward_limit: [main_text, figures, tables]
+excluded_from_limit: [references, acknowledgments, checklist, appendix, supplementary]
+
+# ---- 匿名 ----
+double_blind: true
+forbidden_class_options: [final, preprint, finalcopy]
+anonymize_supplementary: true
+anonymize_linked_code: true
+
+# ---- 样式 ----
+required_style_file: neurips_2026.sty
+style_modification_forbidden: true
+word_template_available: false
+notes_style: |
+  Tweaking the style file is itself grounds for desk rejection, independent of
+  whether the result looks acceptable. Systematic negative \vspace around
+  sectioning commands is a detectable modification pattern even when the .sty
+  file is byte-identical to the official release.
+
+# ---- 必需材料 ----
+checklist_required: true
+checklist_answers: [Yes, No, NA]
+checklist_justification_required: true
+limitations_required: true
+broader_impact_required: true
+
+# ---- 触发 desk reject 的条件 ----
+desk_reject_on:
+  - page_limit_exceeded
+  - style_modification
+  - missing_checklist
+  - deanonymization
+  - non_official_template
+
+# ---- 溯源 ----
+sources:
+  - https://neurips.cc/Conferences/2026/MainTrackHandbook
+  - https://neurips.cc/public/guides/PaperChecklist
+verified_on: 2026-07-27
+verified_by: web-search
+staleness_warning_after_days: 180
+
+# ---- 已知易错点（供 venue-marshal 优先检查）----
+high_frequency_failures:
+  - id: final-option
+    detect: '\\usepackage\[[^]]*\bfinal\b[^]]*\]\{neurips'
+    message: "final 选项关闭匿名，会渲染出完整作者列表"
+    severity: blocker
+  - id: checklist-commented-out
+    detect: '^\s*%\s*\\input\{checklist'
+    message: "checklist 文件存在但在主文件中被注释掉，不会出现在 PDF 中"
+    severity: blocker
+  - id: systematic-vspace
+    detect: '\\vspace\{-[0-9.]+(em|ex|pt|in|cm)\}'
+    threshold: 10
+    scope: adjacent_to_sectioning
+    message: "系统性负间距压缩章节，属于样式修改"
+    severity: blocker
+  - id: multiple-documentclass
+    detect: '\\documentclass'
+    threshold: 2
+    scope: repo
+    message: "存在多个候选主文件，需明确提交版本"
+    severity: blocker
