@@ -61,6 +61,29 @@
 | B4.4 | 没有被 `\input` 但内容为空的文件 | `ingest.py` 文件大小 + 有效内容行数 | major |
 | B4.5 | 没有指向已删除章节的 `\ref` | B2.4 的子集，单独报 | major |
 | B4.6 | 修订标记（`\textcolor{red}`、latexdiff 残留）已清除 | 宏扫描 | major |
+| B4.7 | **被注释掉的实质内容** | `ingest.json.commented_out_content` | major |
+
+> **B4.7 是本 rubric 中最容易被低估的一条，来自真实评审的验证。**
+>
+> 作者在页数压力下常常把内容**注释掉而不是删掉**。这些内容审稿人看不见，
+> 但对审查者完全可见——而且它往往正是审稿人随后索要的东西。
+>
+> 真实案例：某 NeurIPS 投稿的附录里有 **11 个被注释掉的段落、491 词**，包括：
+> - `(vi) Style bias` —— 作者自己写明「本系统的优势可能部分来自 writeup 风格
+>   与 rubric 对齐」。**两位审稿人独立提出了完全相同的质疑。**
+> - `(i) README-to-summary traceability` —— 作者自己发现本系统的数值验证机制
+>   在两个 topic 上失效
+> - `(ii) Implementation-truth blind spot` —— results-only 评判无法验证协议正确性
+> - `Judge` —— 评委的输入截断上限与「results-only 模式下不读代码」
+> - `Per-topic results` —— 审稿人明确索要的逐 topic 表
+>
+> 第三位审稿人给出的 `Limitations: No` 判定，很可能正是因为这些段落不在 PDF 里。
+>
+> **这条的价值在于它把建议从「补写一段 limitations」变成
+> 「取消 appendix.tex:396–406 的注释」** —— 内容已经写好了。
+>
+> 报告时必须同时指出：若因页数限制而注释，则本条与 Tier V 的篇幅问题是同一个
+> 决策的两面，需要一起解决（见 V1）。
 
 > B4.4 命中示例：`sections/analysis.tex` 只有两行注释、`sections/ethics.tex` 是 0 字节，
 > 但 `main.tex` 仍 `\input{sections/analysis}`。编译不报错，PDF 里那一节直接消失，

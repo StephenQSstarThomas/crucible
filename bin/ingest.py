@@ -128,6 +128,60 @@ def extract_all_graphics(doc: Doc) -> list[dict]:
     return out
 
 
+COMMENTED_STRUCTURE_RX = re.compile(
+    r"^\s*%+\s*\\(paragraph|subparagraph|section|subsection|subsubsection|"
+    r"item|caption|begin\{(?:table|figure|tcolorbox)\})")
+
+
+def scan_commented_out_content(doc: Doc, min_words: int = 25) -> dict:
+    """Find substantive prose that exists in the source but not in the PDF.
+
+    Authors under a page limit routinely comment out material rather than
+    delete it. That material is invisible to reviewers but fully visible here,
+    and it is often exactly what reviewers then ask for: methodological detail,
+    per-topic tables, and honest self-criticism. Surfacing it turns "add a
+    limitations discussion" into "uncomment appendix.tex:396-406".
+    """
+    blocks, cur = [], None
+    for l in doc.lines:
+        c = l.comment.lstrip("%").strip()
+        is_struct = bool(COMMENTED_STRUCTURE_RX.match(l.raw))
+        has_prose = len(c.split()) >= 6 and not l.code.strip()
+
+        if is_struct or (cur is not None and has_prose):
+            if cur is None or is_struct:
+                if cur and cur["words"] >= min_words:
+                    blocks.append(cur)
+                title = ""
+                m = re.search(r"\\(?:sub)*(?:paragraph|section)\s*\{([^}]*)\}",
+                              l.raw)
+                if m:
+                    title = m.group(1)
+                cur = {"file": l.file, "line": l.lineno, "title": title,
+                       "text": c, "words": len(c.split()),
+                       "starts_with_structure": is_struct}
+            else:
+                cur["text"] += " " + c
+                cur["words"] += len(c.split())
+        elif cur is not None:
+            if cur["words"] >= min_words:
+                blocks.append(cur)
+            cur = None
+    if cur and cur["words"] >= min_words:
+        blocks.append(cur)
+
+    for b in blocks:
+        b["preview"] = b["text"][:400]
+        b.pop("text", None)
+
+    by_file = {}
+    for b in blocks:
+        by_file[b["file"]] = by_file.get(b["file"], 0) + 1
+    return {"blocks": blocks, "n_blocks": len(blocks),
+            "total_words": sum(b["words"] for b in blocks),
+            "by_file": by_file}
+
+
 def scan_draft_markers(doc: Doc) -> dict:
     """TODO in a comment is fine. TODO in rendered body is a blocker (B4.1)."""
     in_body, in_comment, annotations = [], [], []
@@ -247,6 +301,7 @@ def main():
         "missing_inputs": doc.missing_inputs,
         "empty_inputs": doc.empty_inputs,
         "commented_out_inputs": scan_commented_inputs(repo, doc),
+        "commented_out_content": scan_commented_out_content(doc),
         "macros": macros,
         "title": title,
         "title_prose": to_prose(demacro(title, macros)),
@@ -281,6 +336,14 @@ def main():
         print(f"  ! {len(doc.empty_inputs)} \\input target(s) have no content")
     if out["commented_out_inputs"]:
         print(f"  ! {len(out['commented_out_inputs'])} commented-out \\input(s)")
+    coc = out["commented_out_content"]
+    if coc["n_blocks"]:
+        print(f"  ! {coc['n_blocks']} commented-out content block(s), "
+              f"{coc['total_words']} words hidden from the PDF: {coc['by_file']}")
+        for b in coc["blocks"][:8]:
+            t = f" [{b['title']}]" if b["title"] else ""
+            print(f"      {b['file']}:{b['line']}{t} ({b['words']}w) "
+                  f"{b['preview'][:80]}")
 
 
 if __name__ == "__main__":

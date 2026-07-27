@@ -50,6 +50,24 @@
 | R2.4 | ablation 覆盖全部主要 topic，而非只挑好的子集 |
 | R2.5 | 超参敏感性有单独分析 |
 | R2.6 | 设计空间参数（agent 数量、迭代轮数、温度）有扫描 |
+| R2.7 | **复合机制被分解到可归因的粒度** |
+
+> **R2.7 来自真实评审的验证。** 一个"机制"如果内部含多个可独立开关的部分，
+> 整体移除只能证明"这一坨有用"，不能证明每一部分都有用。
+>
+> 真实审稿人原话：
+> > compare no debate vs **hypothesis-only debate vs result-only debate**;
+> > no repair vs **REFINE-only vs PIVOT+REFINE**; no memory vs
+> > **non-decayed memory vs time-decayed memory**; and no verification vs
+> > **numeric-only vs citation-only** verification
+>
+> 判定方法：读机制的定义，数它有几个可独立关闭的子部件。
+> 子部件数 > 1 且 ablation 只有整体移除行 → 报 major。
+>
+> 注意与 L2.2（每行只改一个变量）的区别：整体移除**确实**只改了一个变量，
+> 在粗粒度上是干净的。R2.7 问的是**粒度够不够支撑机制级归因的 claim**。
+> 若论文只声称"这套组合有用"，R2.7 不适用；若声称"每个机制各自解决一类失败"，
+> 就必须分解到那个粒度。
 
 ## R3. 随机性与统计报告
 
@@ -81,10 +99,26 @@
 | R4.6 | 指标不是事后挑出来的（预注册或多指标齐报） | major |
 | R4.7 | 测试集没有被反复用于选择 | blocker |
 
-> **R4.1 在样例论文上是做对了的**：§4.5 明确写了
+> **R4.1 的一个校准教训：披露 ≠ 充分。**
+>
+> 样例论文在 §4.5 明确写了
 > `"We therefore adopt a best-of-N protocol; Full-Auto numbers in this ablation
 > reflect this setting and should be read against Table 4 rather than the
-> single-run HITL results."` 披露清晰、位置正确。记为通过。
+> single-run HITL results."` 披露清晰、位置正确。
+>
+> CRUCIBLE 初版据此判定为「通过」。**但两位真实审稿人仍把它写进了 weakness**：
+> > the **best-of-3 protocol and small topic count** make the ablation less
+> > clean as evidence of mechanism-level contribution
+>
+> 他们扣分不是因为没披露，而是因为 best-of-3 × 10 topics 本身就是弱证据 ——
+> 取三次中最好的一次，会系统性放大方差大的配置的表现。
+>
+> **所以 R4.1 拆成两问，缺一不可**：
+> 1. 披露了吗？（没披露 = blocker）
+> 2. 披露之后，这个协议还撑得起它所支撑的 claim 吗？（撑不起 = major）
+>
+> 只查第一问会给出「通过」，而审稿人给的是「weakness」。
+> 凡是遇到 best-of-N、early stopping on test、多次重跑取优，都要问第二问。
 >
 > **R4.5 则是严重问题**：Table 2 中各 mode 的 Valid 分母分别是
 > 8/10、10/10、8/10、7/10、10/10、8/10、6/10。Mean Q 和 Accept 都是**在
@@ -108,6 +142,47 @@
 | R5.5 | 若用 LLM 做评委，有人类一致性验证 |
 | R5.6 | LLM 评委没有评价自己家族的模型（自我偏好） |
 | R5.7 | 评测 prompt / rubric 公开 |
+| R5.8 | **自建基准的循环性已被正面处理** |
+| R5.9 | **指标对"做得更好"敏感，而不只对"做完了"敏感** |
+
+> **R5.8 — 自建基准循环性（三位审稿人全部提出，最高频的单条关切）**
+>
+> 当论文同时提供 **benchmark + rubric + judge + 被测系统** 时，
+> 存在一条闭环：基准的任务设计与评分标准可能恰好奖励本系统的设计选择。
+>
+> 真实审稿人原话：
+> > the main 54.7% improvement is reported on ARC-BENCH, **a new benchmark
+> > introduced by the authors**, where task design and evaluation criteria are
+> > central to the result
+> > ...the risk that ARC-BENCH **rewards outputs that match the system's own
+> > design choices**, such as explicit per-hypothesis verdicts and
+> > registry-grounded tables
+>
+> 这与 R5.6（评委自我偏好）**不是同一件事**：R5.6 说的是评委模型与被测模型同源，
+> R5.8 说的是**评分标准本身**与被测系统的输出格式同构。后者更隐蔽也更致命，
+> 因为换个评委模型并不能消除它。
+>
+> 检查方法：
+> 1. rubric 的 leaf criteria 里，有几条描述的是**本系统特有的产出形态**
+>    （如"per-hypothesis verdicts"、"registry-grounded tables"）？
+> 2. 竞品若采用不同但同样合理的输出风格，会不会仅因风格失分？
+> 3. 论文有没有做 blind / normalized-writeup / metric-table-only 的判别消融？
+>
+> 若一条都没做 → `blocker`。这是"新方法 + 新基准"这类论文的头号被拒理由。
+>
+> **R5.9 — 指标是否奖励"更好"**
+>
+> 真实审稿人原话：
+> > If I am reading the scoring definition and the rubrics correctly,
+> > **there is no sensitivity to achieving lower loss/MAE/etc.**
+> > This would be an important dimension along which to compare methods.
+>
+> 一个只评"实现是否正确、是否跑通、写作是否规范"的 rubric，
+> 无法区分「跑出 RMSE 0.9 的系统」与「跑出 RMSE 0.3 的系统」。
+> 在有天然定量指标的领域（ML、优化、预测），这是一个会被直接质疑的设计缺陷。
+>
+> 检查方法：逐条读 rubric 的 leaf，问「把实验结果换成一个更好的数值，这条分会变吗」。
+> 全部不变 → 报 major。
 
 > R5.5 在样例论文上：`"Two independent agent reviewers run the strict judge in
 > parallel; per-leaf disagreements exceeding |Δ| > 0.20 are re-adjudicated"`

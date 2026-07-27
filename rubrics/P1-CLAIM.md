@@ -97,6 +97,68 @@ CRUCIBLE 为每篇论文构建一张表。**这张表本身就是给作者的最
 > ablation 确实存在于 Table 4，所以这条是 ✅；但若 ablation 不存在，
 > 这就是典型的"用相关性措辞冒充因果结论"。
 
+## L3b. 构念效度：测的东西是不是说的东西
+
+**这是 P1 层最容易整层漏掉的一类缺陷，来自真实评审的验证。**
+
+前面的 L3 检查的是"证据够不够强"。L3b 检查的是一个更根本的问题：
+**这个实验测量的对象，和 claim 里说的那个概念，是同一个东西吗？**
+
+证据可以完全充分、统计可以完全干净、数字可以完全真实，而 claim 依然不成立——
+因为实验测的根本不是它声称的那个构念。
+
+| ID | 检查项 | severity |
+|----|--------|----------|
+| L3b.1 | claim 中的每个抽象名词，在实验中有明确的操作化定义 | major |
+| L3b.2 | 该操作化与该名词的**通常理解**一致 | blocker |
+| L3b.3 | 用代理指标时，代理与目标的关系有论证或引用 | major |
+| L3b.4 | 用模拟/脚本替代真实对象时，替代的有效性有讨论 | blocker |
+| L3b.5 | 结论的措辞回到构念层面时，范围没有被悄悄放大 | blocker |
+
+**真实案例（三位审稿人中的两位独立提出）**：
+
+论文的核心 claim 之一是 *human-AI collaboration*：
+> targeted collaboration at high-leverage decision points consistently
+> outperforms both full autonomy and exhaustive step-by-step oversight
+
+实验做的是：七种干预 regime，每种在预定阶段注入**预先写好的脚本化专家 payload**。
+
+审稿人的判定：
+> the HITL study uses **scripted expert interventions rather than live human
+> collaborators** ... so the result is better described as an
+> **intervention-schedule ablation** than evidence about real human-AI collaboration
+>
+> This would test whether the gains come from the proposed intervention schedule
+> rather than from **high-quality expert content injected at favorable stages**
+
+关键点：**论文如实披露了干预是脚本化的**（附录里写了）。
+所以这不是 P0-INTEG 的诚信问题，也不是 L3 的"证据不足"——
+证据对于"干预时序消融"这个 claim 是充分的。
+
+问题在于 claim 说的是 *collaboration*（一个关于人与系统互动的构念），
+而测的是 *schedule*（一个关于时序的变量）。**两者不是同一个东西。**
+而且存在一个未被排除的竞争解释：增益可能来自注入内容的质量，而非注入的位置。
+
+**检查方法**：
+1. 从 claim 里挑出抽象名词（collaboration、robustness、reasoning、
+   understanding、creativity、autonomy、generalization……）
+2. 去实验节找它的操作化：具体测了什么变量
+3. 问三个问题：
+   - 换一个人来读，会认为这个操作化就是那个名词吗？
+   - 有没有一个同样能解释结果的竞争构念？（此例：内容质量 vs 注入位置）
+   - 论文有没有做能区分两者的对照？（此例：等 token 量的泛化 feedback、
+     随机位置的干预门 —— 都没做）
+4. 三问中任意一问失败 → 报 major；claim 直接建立在错配的构念上 → blocker
+
+**修复方向通常不是补实验，而是改措辞。** 把
+"human-AI collaboration outperforms full autonomy" 改成
+"targeted intervention schedules outperform uniform ones under scripted
+expert payloads"，claim 立刻与证据对齐，且不损失任何真实贡献。
+审稿人明确建议了这条路：
+> A more defensible framing would be that the results **suggest improved
+> robustness on ARC-BENCH under the authors' evaluation protocol**, rather
+> than establishing broad superiority.
+
 ## L4. 范围纪律（Scope discipline）
 
 | ID | 检查项 | severity |
