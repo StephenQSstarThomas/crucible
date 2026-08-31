@@ -20,9 +20,9 @@ fi
 OUT="$WORK/out"
 echo "== collecting =="
 if [[ -n "$VENUE" ]]; then
-    python3 "$SRC/bin/collect.py" "$PAPER" -o "$OUT" --venue "$VENUE" >"$WORK/log" 2>&1 || true
+    python3 "$SRC/bin/collect.py" "$PAPER" -o "$OUT" --venue "$VENUE" >"$WORK/log" 2>&1
 else
-    python3 "$SRC/bin/collect.py" "$PAPER" -o "$OUT" >"$WORK/log" 2>&1 || true
+    python3 "$SRC/bin/collect.py" "$PAPER" -o "$OUT" >"$WORK/log" 2>&1
 fi
 tail -14 "$WORK/log"
 
@@ -42,7 +42,7 @@ need_json() {
     fi
 }
 
-for f in ingest.json tables.json refs.json numbers.json forensics.json _summary.json; do
+for f in ingest.json authorship.json tables.json refs.json numbers.json forensics.json _summary.json; do
     need_json "$f"
 done
 [[ -n "$VENUE" ]] && need_json venue.json
@@ -75,10 +75,15 @@ out = pathlib.Path(sys.argv[1])
 ing = json.load(open(out / "facts" / "ingest.json"))
 tab = json.load(open(out / "facts" / "tables.json"))
 num = json.load(open(out / "facts" / "numbers.json"))
+auth = json.load(open(out / "facts" / "authorship.json"))
 
 assert ing["n_lines"] > 0, "flattened document is empty"
 assert ing["root_tex"], "no root tex recorded"
 assert len(ing["linemap"]) == ing["n_lines"], "linemap does not cover the document"
+assert auth["source_scope"] == "tex-source", "unexpected authorship evidence scope"
+assert isinstance(auth["direct_disclosures"], list)
+assert isinstance(auth["generation_artifacts"], list)
+assert auth["limitations"], "authorship limitations must be explicit"
 # every table row must have cells or be a rule
 for t in tab:
     for r in t["rows"]:

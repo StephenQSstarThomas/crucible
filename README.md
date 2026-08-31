@@ -1,11 +1,11 @@
 # CRUCIBLE
 
-**投稿前的论文审查与提升系统。skills + subagent 驱动。**
+**面向 Codex 的投稿前论文审查与提升系统。skills + custom agents 驱动。**
 
 > 坩埚。矿石入炉，贱金属化为炉渣被烧掉，剩下的才是可发表的东西。
 
-输入一个 Overleaf 仓库，输出一份按严重级别排序、每条可复算、经对抗验证的缺陷清单，
-以及 agent 执行的修复。
+输入一个 Overleaf 仓库，输出自洽性与严谨性审查、可执行修改建议、按严重级别排序且经
+对抗验证的缺陷清单；报告最前另有“人类主导 / AI深度参与 / 全AI”三档写作来源判断。
 
 ---
 
@@ -13,8 +13,12 @@
 
 ```bash
 git clone <this-repo> ~/crucible
-cd ~/crucible && ./install.sh
+cd ~/crucible && ./install.sh --codex
 ```
+
+安装器将 skills 链接到 `${CODEX_HOME:-~/.codex}/skills`，把 16 个 Codex custom agents
+链接到 `${CODEX_HOME:-~/.codex}/agents`。安装后重启 Codex。仍需 Claude Code 兼容时可用
+`./install.sh --claude`；`--copy` 可替代符号链接。
 
 依赖：`python3`、`tectonic`、`pymupdf`、`pillow`、`pyyaml`。
 没有 `tectonic` 也能跑源码层检查，但所有基于渲染结果的检查会被跳过 ——
@@ -22,16 +26,16 @@ cd ~/crucible && ./install.sh
 
 ## 用
 
-```
-/crucible <paper> [--venue neurips-2026] [--evidence <dir>] [--no-fix]
+```text
+$crucible <paper> [--venue neurips-2026] [--evidence <dir>] [--no-fix]
 ```
 
 `<paper>` 可以是 zip、git URL、本地目录，或单个 `.tex`。
 
 ```bash
-/crucible ~/AutoClaw_for_NIPS.zip --venue neurips-2026
-/crucible ~/paper --evidence ~/paper/runs      # 启用真伪检查
-/crucible ~/paper --no-fix                     # 只报告，不碰 .tex
+$crucible ~/AutoClaw_for_NIPS.zip --venue neurips-2026
+$crucible ~/paper --evidence ~/paper/runs      # 启用真伪检查
+$crucible ~/paper --no-fix                     # 只报告，不碰 .tex
 ```
 
 也可以只跑确定性采集，不用 agent：
@@ -73,7 +77,7 @@ tests/smoke.sh ~/AutoClaw_for_NIPS.zip neurips-2026
 
 ---
 
-## 四条设计公理
+## 五条设计公理
 
 ### 1. 通用性优先于会场规则
 
@@ -98,6 +102,12 @@ tests/smoke.sh ~/AutoClaw_for_NIPS.zip neurips-2026
 `bin/` 只采集事实，不下判断。判断和修复都由 subagent 做。
 永远不用 `sed` 批量替换 —— 它会把 `generatio` 改对，同时改掉某个作者姓氏
 和某段 verbatim 里的字符串。
+
+### 5. 写作来源判断不是文本 detector
+
+三档结论综合作者披露、源码与版本 provenance、高特异性生成残留、已验证的自洽性异常、
+人工修订轨迹和反证。仅凭“文风像 AI”、句长或词频不能判 `全AI`；报告不给伪精确百分比，
+并始终说明它不是作者身份或诚信的取证结论。
 
 ---
 
@@ -134,10 +144,12 @@ Novelty 争议几乎从不是"这个想法有没有人做过"的事实之争，�
 ```
 CRUCIBLE.md              设计公理与架构
 rubrics/                 九个 tier 的完整检查项 —— 系统的知识都在这里
+  A-AUTHORSHIP.md          写作来源三档判断的证据层级与反证
 contracts/               finding.schema.json
 bin/                     确定性采集器（只出事实，不下判断）
   collect.py               一次跑完全部
   ingest.py                \input 树、章节、浮动体、宏、行号映射
+  authorship.py            AI-use 披露、生成残留、修订与版本 provenance 事实
   render.py                tectonic 编译、日志解析、逐页 PNG、PDF 文本层
   tables.py                LaTeX tabular → 可寻址网格（表内算术复算的基础）
   numledger.py             数值账本 + 锚定检查（正文数字 vs 它引用的表）
@@ -145,10 +157,12 @@ bin/                     确定性采集器（只出事实，不下判断）
   figures.py               版面实测 DPI、色盲模拟、感知哈希查重、300dpi 裁切
   forensics.py             末位数字、Benford、重复行、小分母 —— 红旗非证据
   venue.py                 页数、样式篡改、匿名、必需材料
+  validate_report.py        强制三档来源判断位于 REPORT.md 第一节
 skills/
   crucible/                编排：INGEST→COLLECT→看预览→FAN-OUT→VERIFY→PANEL→VENUE→FIX→REPORT
   crucible-report/         报告渲染规范
-agents/                  15 个 subagent
+agents/                  16 个可移植角色定义（含写作来源评估器）
+.codex/agents/           由脚本同步生成的 Codex custom-agent TOML
 venues/                  会场规则数据（带 verified_on 时效字段）
 examples/                真实论文的审查报告样例
 tests/smoke.sh           自检：跑完全部采集器并断言事实文件结构
@@ -159,6 +173,7 @@ tests/smoke.sh           自检：跑完全部采集器并断言事实文件结�
 ```
 crucible-out/
 ├── REPORT.md              主报告（中文叙述 + 英文原文）
+├── authorship_assessment.json 三档来源判断、支持/反对证据与证据缺口
 ├── DESK_RISK_CARD.md      一页纸：会不会当场被拒
 ├── findings.json          结构化，含被证伪的条目供审计
 ├── facts/                 确定性采集结果，可 diff、可 CI
@@ -180,5 +195,6 @@ crucible-out/
   需要时用 `--style-profile`，产出独立文件，不占 severity 序列。
 - **不判断科学价值。** 不会说"这个方向没意思"。
 - **不给接收概率。** 没有校准依据的精确数字，正是它审查论文时反对的东西。
+- **不给 AI 百分比。** 只输出用户要求的三档，并公开依据、反证和数据缺口。
 - **无 `--evidence` 时不指控造假**，只报矛盾。
   说两个数不一致是事实陈述；说一个数是编的是指控，需要证据。

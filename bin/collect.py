@@ -23,6 +23,7 @@ HERE = Path(__file__).resolve().parent
 STAGES = [
     ("ingest",    ["ingest.py"],    True),
     ("render",    ["render.py"],    False),   # needs a TeX engine; optional
+    ("authorship",["authorship.py"],True),
     ("tables",    ["tables.py"],    True),
     ("refs",      ["refs.py"],      True),
     ("numbers",   ["numledger.py"], True),
@@ -47,6 +48,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
 
     results = {}
+    required_failures = []
     for name, cmd, required in STAGES:
         if name == "render" and args.skip_render:
             results[name] = {"status": "skipped"}
@@ -65,6 +67,7 @@ def main():
                          "returncode": p.returncode, "seconds": dt}
         if p.returncode != 0 and required:
             print(f"crucible: required collector '{name}' failed", file=sys.stderr)
+            required_failures.append(name)
 
     if args.venue:
         argv = [sys.executable, str(HERE / "venue.py"), args.target,
@@ -78,6 +81,8 @@ def main():
         results["venue"] = {"status": "ok" if p.returncode == 0 else "failed",
                             "returncode": p.returncode,
                             "seconds": round(time.time() - t0, 1)}
+        if p.returncode != 0:
+            required_failures.append("venue")
 
     # one small file an agent can read first to orient itself
     facts = out / "facts"
@@ -97,7 +102,9 @@ def main():
         }
     except Exception:
         pass
-    for key, path in (("render", "render.json"), ("refs", "refs.json"),
+    for key, path in (("render", "render.json"),
+                      ("authorship", "authorship.json"),
+                      ("refs", "refs.json"),
                       ("numbers", "numbers.json"), ("tables", "tables.json"),
                       ("figures", "figures.json"),
                       ("forensics", "forensics.json"),
@@ -111,6 +118,10 @@ def main():
     for k, v in results.items():
         print(f"  {k:10s} {v['status']:8s} {v.get('seconds', '')}s")
     print(f"\nfacts written to {facts}/")
+    if required_failures:
+        print("crucible: required collectors failed: " +
+              ", ".join(required_failures), file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

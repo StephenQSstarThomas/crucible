@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crucible.local/contracts/authorship-assessment.schema.json",
+  "title": "CRUCIBLE Authorship Assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "label",
+    "summary_zh",
+    "supporting_signals",
+    "counter_signals",
+    "unavailable_evidence",
+    "limitations_zh"
+  ],
+  "properties": {
+    "label": {
+      "enum": ["人类主导", "AI深度参与", "全AI"]
+    },
+    "summary_zh": {
+      "type": "string"
+    },
+    "supporting_signals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/signal" }
+    },
+    "counter_signals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/signal" }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "limitations_zh": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strength", "description_zh", "source"],
+      "properties": {
+        "strength": {
+          "enum": ["direct", "high-specificity", "supporting", "weak"]
+        },
+        "description_zh": { "type": "string" },
+        "source": { "type": "string" },
+        "excerpt": { "type": "string" }
+      }
+    }
+  }
+}

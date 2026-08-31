@@ -1,10 +1,9 @@
 ---
 name: crucible-report
 description: >
-  渲染 CRUCIBLE 的最终报告：按严重级别排序的发现清单、一页纸 desk-reject 风险卡、
+  渲染 CRUCIBLE 的最终报告：报告最前的三档写作来源判断、按严重级别排序的发现清单、一页纸 desk-reject 风险卡、
   claim 账本、修复补丁索引、审稿人模拟意见。中文叙述 + 英文原文引用。
-  由 crucible 编排 skill 在阶段 I 调用；也可在已有 findings.json 的目录上单独重跑。
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+  由 crucible 编排 skill 在阶段 J 调用；也可在已有 findings.json 的目录上单独重跑。
 ---
 
 # 报告渲染
@@ -15,12 +14,14 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 - `crucible-out/panel/*.md` — 审稿人模拟
 - `crucible-out/fixes/round-*.json` — 修复记录
 - `crucible-out/facts/*.json` — 用于"已通过"小节
+- `crucible-out/authorship_assessment.json` — 三档来源判断、支持/反对信号与证据缺口
 
 ## 输出
 
 ```
 crucible-out/
 ├── REPORT.md
+├── authorship_assessment.json
 ├── DESK_RISK_CARD.md
 ├── findings.json        # 全部 finding，含 REFUTED（供审计）
 └── ledgers/claim_ledger.md
@@ -39,6 +40,24 @@ crucible-out/
 
 ```markdown
 # CRUCIBLE 审查报告 — <论文标题>
+
+## 写作来源判断（非取证结论）
+
+> **档位：<人类主导 / AI深度参与 / 全AI>**
+>
+> 当前可得证据更符合“<档位>”。这是一项来源风险判断，不是作者身份或诚信的取证结论。
+
+**支持该判断的信号**：
+- <strength> — <描述>（`file:line` 或 facts 路径）
+
+**反对信号 / 其他解释**：
+- <strength> — <描述>（`file:line` 或 facts 路径）
+
+**缺失证据**：<Git 历史、写作日志、仅有 PDF 等>
+
+**方法限制**：不输出百分比；终稿文风不能可靠区分人类写作、AI 改写与人类重写 AI 初稿。
+
+---
 
 **稿件**：<repo> @ <commit>
 **主文件**：<root.tex>（若有多个候选，在此标注确认结果）
@@ -158,6 +177,17 @@ crucible-out/
 
 P5 与 P0–P4 **分区呈现，不混排**。事实性 finding 和主观预测放进同一个列表，
 后者会稀释前者的可信度。P5 段落必须带那句免责说明。
+
+写作来源判断必须是标题后的第一个 section。若 `authorship_assessment.json` 缺失或不符合
+schema，不得静默省略：报告顶部写“未完成来源评估”，并把报告视为未完成产物。
+
+生成后必须运行：
+
+```bash
+python3 <CRUCIBLE>/bin/validate_report.py crucible-out
+```
+
+校验失败时报告尚未完成，修正结构或 assessment 后重跑。
 
 ## 不做的事
 

@@ -229,7 +229,7 @@ def main():
         for e in (result.get("log_analysis", {}).get("errors") or [])[:5]:
             print(f"      ! {e}")
         print((result.get("stderr_tail") or "")[-1200:])
-        return
+        raise SystemExit(1)
 
     pdf = result["pdf"]
     la = result["log_analysis"]

@@ -1,0 +1,41 @@
+{
+  "label": "AI深度参与",
+  "summary_zh": "当前可得证据更符合“AI深度参与”。这是一项来源风险判断，不是作者身份或诚信的取证结论。",
+  "supporting_signals": [
+    {
+      "strength": "direct",
+      "description_zh": "论文明确披露 ChatGPT 参与了 manuscript drafting 和 figure preparation，已经超过单纯拼写或语法润色。",
+      "source": "main.tex:416",
+      "excerpt": "OpenAI's ChatGPT was used to assist with software implementation, debugging, documentation, manuscript drafting, and figure preparation."
+    },
+    {
+      "strength": "supporting",
+      "description_zh": "公开软件仓库也披露 ChatGPT 与 Claude 深度参与实现、架构、文档与代码修订，说明 AI 贯穿了论文所描述项目的开发过程。",
+      "source": "HEPLocalAgent@feeccfb:AI_ASSISTED_DEVELOPMENT.md"
+    }
+  ],
+  "counter_signals": [
+    {
+      "strength": "direct",
+      "description_zh": "声明同时写明科学目标、软件需求、运行检查、技术与科学 claim 核验由作者完成；没有声明全文由模型生成。",
+      "source": "main.tex:420",
+      "excerpt": "The authors defined the scientific objectives and software requirements, reviewed and tested all AI-assisted code ... and verified the technical and scientific claims presented in the manuscript."
+    },
+    {
+      "strength": "high-specificity",
+      "description_zh": "TeX 源码中未发现 assistant 自述、聊天角色残留、生成指令或占位引用等高特异性泄漏。",
+      "source": "facts/authorship.json:generation_artifacts"
+    },
+    {
+      "strength": "weak",
+      "description_zh": "全文在术语、限制条件和数字传播上总体一致，但终稿一致性本身不能区分人工编辑与 AI 生成。",
+      "source": "facts/ingest.json and verified findings"
+    }
+  ],
+  "unavailable_evidence": [
+    "arXiv source package 不含 manuscript Git history",
+    "未提供 manuscript drafting prompts、聊天日志、逐稿 diff 或作者写作记录",
+    "公开软件仓库的 Git 历史只能证明代码修订，不能证明各段论文文字的来源"
+  ],
+  "limitations_zh": "仅凭终稿文风无法可靠区分人类写作、AI 改写和人类重写 AI 初稿。本结论主要依赖作者自己的明确披露，因此可支持“AI深度参与”，但不足以升级为“全AI”；不提供未经校准的百分比。"
+}

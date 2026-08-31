@@ -1,16 +1,17 @@
 ---
 name: crucible
 description: >
-  论文投稿前的审查与提升系统。输入一个 Overleaf 仓库（zip / git / 本地目录），
+  审核论文的自洽性、实验严谨性、主张证据、引用与渲染质量，并给出可执行修改建议。
+  输入一个 Overleaf 仓库（zip / git / 本地目录），
   按严重级别阶梯逐层审查：构建渲染、数据诚信、表层硬伤、主张-证据对齐、实验严谨性、
   问题定义与新颖性、呈现质量、审稿人模拟，最后单独跑会场符合性。
+  另综合来源证据将写作方式归入人类主导、AI深度参与、全AI三档，并置于报告最前。
   每条发现可复算、可定位、经对抗验证；机械修复由 agent 执行并提交到独立分支。
   TRIGGERS — "审一下我的论文", "投稿前检查", "这篇稿子有什么问题", "review my paper
-  before submission", "check this manuscript", "/crucible", 或用户给出一个论文
+  before submission", "check this manuscript", "$crucible", 或用户给出一个论文
   仓库/zip 并要求提升质量。
   DO NOT trigger for: 写论文/生成章节（CRUCIBLE 不代写）、单纯的语法润色
   （用 --style-profile 或直接改）、已发表论文的文献综述。
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
 # CRUCIBLE
@@ -22,19 +23,20 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent, WebSearch, WebFetch
 
 ---
 
-## 0. 四条公理（不可违反）
+## 0. 五条公理（不可违反）
 
 1. **通用性优先于会场规则** — P0–P5 与会场无关；页数/匿名/checklist 放在最后的 Tier V。
 2. **每条发现必须可复算** — 数值类发现必须给出完整算式，不接受"看起来不对"。
 3. **每条 P0/P1 发现必须经对抗验证** — 由独立 verifier 尝试证伪，存活才进报告。
 4. **探测可用脚本，修复必须由 agent 执行** — 永远不用 `sed` 批量替换。
+5. **写作来源只做三档风险判断** — 综合 provenance 与反证；文风不是检测器，不输出伪精确百分比。
 
 ---
 
 ## 1. 入参
 
 ```
-/crucible <paper> [--venue <slug>] [--evidence <dir>] [--root <main.tex>]
+$crucible <paper> [--venue <slug>] [--evidence <dir>] [--root <main.tex>]
                   [--double-blind yes|no] [--tiers P0,P1,...] [--no-fix]
 ```
 
@@ -58,7 +60,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent, WebSearch, WebFetch
 ### 阶段 A — INGEST
 
 1. 解包/克隆到工作目录。zip 用 `unzip -q`；git 用 `git clone --depth 1`。
-2. 若是用户的真实 Overleaf 仓库，**先建 `crucible/fixes` 分支**（阶段 H 要用）。
+2. 若是用户的真实 Overleaf 仓库，**先建 `crucible/fixes` 分支**（阶段 I 要用）。
    非 git 目录则 `git init` 后提交一次基线，保证修改可回滚。
 
 ### 阶段 B — COLLECT（确定性）
@@ -94,13 +96,13 @@ python3 <CRUCIBLE>/bin/collect.py <repo> -o crucible-out \
 
 | Agent | Tier | 读什么 |
 |-------|------|--------|
-| `crucible-build-inspector` | P0-BUILD | `render.json` `refs.json` `ingest.json` + preview PNG |
-| `crucible-integrity-auditor` | P0-INTEG | `numbers.json` `tables.json` `forensics.json` + evidence dir |
-| `crucible-surface-auditor` | P0-SURF | `ingest.json` 的 prose_by_section |
-| `crucible-claim-auditor` | P1 | `ingest.json` `numbers.json` `tables.json` |
-| `crucible-rigor-reviewer` | P2 | `tables.json` + 正文 |
-| `crucible-novelty-analyst` | P3 | 正文 + WebSearch |
-| `crucible-figure-critic` | P4 | `figures.json` + figures/*.png 裁切 |
+| `crucible_build_inspector` | P0-BUILD | `render.json` `refs.json` `ingest.json` + preview PNG |
+| `crucible_integrity_auditor` | P0-INTEG | `numbers.json` `tables.json` `forensics.json` + evidence dir |
+| `crucible_surface_auditor` | P0-SURF | `ingest.json` 的 prose_by_section |
+| `crucible_claim_auditor` | P1 | `ingest.json` `numbers.json` `tables.json` |
+| `crucible_rigor_reviewer` | P2 | `tables.json` + 正文 |
+| `crucible_novelty_analyst` | P3 | 正文 + web search |
+| `crucible_figure_critic` | P4 | `figures.json` + figures/*.png 裁切 |
 
 每个 agent 写出 `crucible-out/candidates/<tier>.json`（finding 数组，
 符合 `contracts/finding.schema.json`，但 `verdict` 留空）。
@@ -110,7 +112,7 @@ python3 <CRUCIBLE>/bin/collect.py <repo> -o crucible-out \
 
 ### 阶段 E — VERIFY（对抗验证，公理 3）
 
-收齐候选后，对**每一条 P0 和 P1 的 finding** 派发一个 `crucible-verifier`。
+收齐候选后，对**每一条 P0 和 P1 的 finding** 派发一个 `crucible_verifier`。
 verifier 的默认立场是"这条是误报"，任务是证伪。
 
 - 证伪失败 → `verdict: CONFIRMED`
@@ -123,30 +125,38 @@ P2–P4 的 finding 抽验即可（每类抽 2 条），P5 不验证（它本来
 包括那条真正会导致 desk reject 的。已知的真实误报例子：
 `\ref{box:rubric-t01}` 看起来未定义，实际由 tcolorbox 的 `label={...}` 选项定义。
 
-### 阶段 F — PANEL（P5，审稿人模拟）
+### 阶段 F — AUTHORSHIP（独立来源评估）
+
+派发 Codex custom agent `crucible_authorship_assessor`，让它读
+`rubrics/A-AUTHORSHIP.md`、`facts/authorship.json`、源码和已验证 findings，写出
+`crucible-out/authorship_assessment.json`。必须只选 `人类主导`、`AI深度参与`、`全AI`
+之一；不得输出百分比，也不得仅凭 stylometry 升档。只允许使用 verifier 后仍存活的
+异常作为辅助信号。
+
+### 阶段 G — PANEL（P5，审稿人模拟）
 
 并行派发四个角色，**互相不可见，且都不给它们前面 tier 的 findings**
 （否则会变成复述已知结论，失去独立信号）：
 
-`crucible-role-ac`、`crucible-role-methodologist`、
-`crucible-role-empiricist`、`crucible-role-skeptic`
+`crucible_role_ac`、`crucible_role_methodologist`、
+`crucible_role_empiricist`、`crucible_role_skeptic`
 
 产出 `crucible-out/panel/{ac,r1,r2,r3}.md` + 弱点分诊表。
 
-### 阶段 G — VENUE（Tier V，最后）
+### 阶段 H — VENUE（Tier V，最后）
 
-仅当给了 `--venue`。派发 `crucible-venue-marshal` 读 `facts/venue.json`。
+仅当给了 `--venue`。派发 `crucible_venue_marshal` 读 `facts/venue.json`。
 
 **先确认稿件用途**：双盲投稿版 / camera-ready / arXiv preprint。
 用途不同，匿名类 finding 全部作废还是全部成立。搞错方向的误报代价极高。
 
-### 阶段 H — FIX LOOP（最多 3 轮，公理 4）
+### 阶段 I — FIX LOOP（最多 3 轮，公理 4）
 
 对 `fix.kind == "mechanical"` 的 finding：
 
-1. `crucible-fixer` 逐条应用。**每条都要先读上下文再改**。
+1. `crucible_fixer` 逐条应用。**每条都要先读上下文再改**。
 2. 重跑 `bin/collect.py`，diff `facts/` 证明没有引入回归。
-3. `crucible-fix-auditor` 逐条判定 addressed / partial / unaddressed。
+3. `crucible_fix_auditor` 逐条判定 addressed / partial / unaddressed。
 4. 有 unaddressed 且轮次 < 3 则再来一轮。
 
 对 `fix.kind == "judgment"`：产出 `crucible-out/patches/<id>.patch`，**不自动应用**。
@@ -158,13 +168,14 @@ P2–P4 的 finding 抽验即可（每类抽 2 条），P5 不验证（它本来
 - ❌ 任何改变 claim 强度的措辞
 - ❌ 删除内容以压页数（那是作者的取舍）
 
-### 阶段 I — REPORT
+### 阶段 J — REPORT
 
 调用 `crucible-report` skill 生成：
 
 ```
 crucible-out/
 ├── REPORT.md              # 主报告：中文叙述 + 英文原文引用
+├── authorship_assessment.json # 三档写作来源判断及证据/反证
 ├── DESK_RISK_CARD.md      # 一页纸风险卡
 ├── findings.json          # 全部 finding，含 REFUTED
 ├── ledgers/claim_ledger.md
@@ -181,6 +192,8 @@ crucible-out/
   每个 tier 都要有"已通过"小节。
 - **P5 与 P0–P4 分区呈现，不混排**。事实性 finding 和主观预测放在同一个列表里，
   后者会稀释前者的可信度。
+- **三档写作来源判断放在 REPORT.md 标题后的第一节**，早于稿件元数据、摘要和 severity 表。
+  它必须同时列支持信号、反对信号和证据缺口，并明确不是取证结论。
 - **不给"接收概率"**。没有校准依据的精确数字，正是 CRUCIBLE 审查论文时反对的东西。
 - **没有 evidence 目录时，不得断言"编造"**，只报"矛盾"。
 
