@@ -1,200 +1,122 @@
 # CRUCIBLE
 
-**面向 Codex 的投稿前论文审查与提升系统。skills + custom agents 驱动。**
+投稿前自查论文用的一组 Codex skill 和 agent。
 
-> 坩埚。矿石入炉，贱金属化为炉渣被烧掉，剩下的才是可发表的东西。
+给它论文的 LaTeX 源码（Overleaf 导出的 zip、git 仓库或本地目录），它会编译 PDF、抽取正文和表格里的数字，再让多个 agent 并行审查，最后给出问题清单和按顺序排好的修改建议。
 
-输入一个 Overleaf 仓库，输出自洽性与严谨性审查、可执行修改建议、按严重级别排序且经
-对抗验证的缺陷清单；报告最前另有“人类主导 / AI深度参与 / 全AI”三档写作来源判断。
+它不代写论文，也不预测能不能中，只负责在审稿人之前把能查出来的问题查出来。
 
----
+Claude Code 版本在 [`claude-code`](https://github.com/StephenQSstarThomas/crucible/tree/claude-code) 分支。
 
-## 装
+## 安装
 
 ```bash
-git clone <this-repo> ~/crucible
-cd ~/crucible && ./install.sh --codex
+git clone https://github.com/StephenQSstarThomas/crucible.git ~/crucible
+cd ~/crucible && ./install.sh
 ```
 
-安装器将 skills 链接到 `${CODEX_HOME:-~/.codex}/skills`，把 16 个 Codex custom agents
-链接到 `${CODEX_HOME:-~/.codex}/agents`。安装后重启 Codex。仍需 Claude Code 兼容时可用
-`./install.sh --claude`；`--copy` 可替代符号链接。
+安装脚本把 2 个 skill 和 17 个 agent 链接到 `~/.codex`（或 `$CODEX_HOME`），装完重启 Codex。
 
-依赖：`python3`、`tectonic`、`pymupdf`、`pillow`、`pyyaml`。
-没有 `tectonic` 也能跑源码层检查，但所有基于渲染结果的检查会被跳过 ——
-而那恰好是最重要的一部分（见下）。
+依赖：`python3`、`tectonic`、`pymupdf`、`pillow`、`pyyaml`。没有 `tectonic` 时只能做源码层面的检查，页数、图表清晰度这类要看 PDF 的检查会跳过。
 
-## 用
+## 使用
 
 ```text
-$crucible <paper> [--venue neurips-2026] [--evidence <dir>] [--no-fix]
+$crucible ~/paper.zip --venue iclr-2027 --purpose submission
+$crucible ~/paper --evidence ~/paper/runs     # 提供实验日志，可以核对数字是否与记录一致
+$crucible ~/paper --no-fix                    # 只出报告，不改源码
 ```
 
-`<paper>` 可以是 zip、git URL、本地目录，或单个 `.tex`。
+| 参数 | 作用 |
+|------|------|
+| `--venue` | 会场规则，目前有 `neurips-2026`、`iclr-2027`（见 `venues/`） |
+| `--purpose` | `submission` / `camera-ready` / `preprint`，决定是否检查匿名 |
+| `--evidence` | 实验产物目录 |
+| `--root` | 仓库里有多个主文件时指定一个 |
+| `--tiers` | 只跑部分检查，如 `P0,P1` |
+| `--no-fix` / `--no-panel` | 不做自动修复 / 不跑模拟审稿 |
+
+不经过 agent、只跑确定性采集：
 
 ```bash
-$crucible ~/AutoClaw_for_NIPS.zip --venue neurips-2026
-$crucible ~/paper --evidence ~/paper/runs      # 启用真伪检查
-$crucible ~/paper --no-fix                     # 只报告，不碰 .tex
-```
-
-也可以只跑确定性采集，不用 agent：
-
-```bash
-python3 bin/collect.py ~/paper -o crucible-out --venue neurips-2026
-```
-
----
-
-跑一遍自检：
-
-```bash
-tests/smoke.sh ~/AutoClaw_for_NIPS.zip neurips-2026
-```
-
-一份真实的输出样例在 `examples/`：
-[审查报告](examples/AutoResearchClaw-REPORT.md) ·
-[Desk-reject 风险卡](examples/AutoResearchClaw-DESK_RISK_CARD.md)
-
-## 为什么不是又一个 latex linter
-
-因为 linter 查的是源码，审稿人看的是 PDF。
-
-这个仓库最初是为了审一篇真实的 NeurIPS 投稿而写的。那篇稿子已经过了
-6 轮人工润色，润色报告显示"所有静态检查为空"。CRUCIBLE 在它上面找到的东西包括：
-
-- `checklist.tex` 存在、5345 字节、**已完整填写**，但 `main.tex` 里
-  `\input{checklist}` 被注释掉了。扫源码目录的检查会认为 checklist 存在。
-  NeurIPS 对缺 checklist 的稿子直接 desk reject。
-- 正文写 "CoPilot ... with **19** targeted interventions"，
-  它引用的那张表里写的是 **6**。同段的 **29** 在论文任何表格中都不存在。
-- 某张表的 `Overall` 列，用 caption 声明的权重怎么算都得不到印出来的数
-  （反解发现它实际按 4 个任务算，caption 写的是 3 个）。
-- 仓库里的 `POLISH_REPORT.md` 还在引用上一版的 headline 数字。
-- 一个被 `\input` 的 section 文件只剩两行注释。
-
-这些都不是风格问题，也没有一个能靠查禁用词表发现。
-
----
-
-## 五条设计公理
-
-### 1. 通用性优先于会场规则
-
-会场规则每年都变，正确性不变。所以 P0 只包含"在任何会场任何年份都是错的"东西。
-页数、匿名、checklist 这些**放在最后单独一轮 (Tier V)**。
-改投另一个会场时，P0–P5 的结论全部复用。
-
-### 2. 每条发现必须可复算
-
-不接受"看起来不对"。数值类发现必须给出完整算式，并把所有替代算法都试一遍。
-最好能**反解出作者实际用的参数**，把"某处有错"变成"caption 与计算不一致，改哪个由你定"。
-
-### 3. 每条 P0/P1 发现必须经对抗验证
-
-由一个独立的 verifier 尝试**证伪**，默认立场是"这条是误报"。存活才进报告。
-
-一个乱报警的审查工具比没有工具更糟：用户会开始无视全部输出，
-包括那条真正会导致 desk reject 的。
-
-### 4. 探测可用脚本，修复必须由 agent 执行
-
-`bin/` 只采集事实，不下判断。判断和修复都由 subagent 做。
-永远不用 `sed` 批量替换 —— 它会把 `generatio` 改对，同时改掉某个作者姓氏
-和某段 verbatim 里的字符串。
-
-### 5. 写作来源判断不是文本 detector
-
-三档结论综合作者披露、源码与版本 provenance、高特异性生成残留、已验证的自洽性异常、
-人工修订轨迹和反证。仅凭“文风像 AI”、句长或词频不能判 `全AI`；报告不给伪精确百分比，
-并始终说明它不是作者身份或诚信的取证结论。
-
----
-
-## 严重级别阶梯
-
-| Tier | | 通用? |
-|------|---|-------|
-| **P0-BUILD** | 构建与渲染：编译、`??`、缺图、草稿残留、空的被引文件 | ✅ |
-| **P0-INTEG** | 数据与引用诚信：数值矛盾、表内算术、过期数字、幻觉引用、图像复用 | ✅ |
-| **P0-SURF** | 表层硬伤：错别字、记号、结构完整性 | ✅ |
-| **P1-CLAIM** | 主张—证据对齐；**每个声称的机制必须有自己的对照** | ✅ |
-| **P2-RIGOR** | 实验严谨性：baseline、ablation、误差棒、选择性报告、分母可比性 | ✅ |
-| **P3-DEF** | 问题定义 → 新颖性 | ✅ |
-| **P4-PRES** | 呈现质量：**最终渲染尺寸下的**图表可读性 | ✅ |
-| **P5-PANEL** | 审稿人模拟与 rebuttal 就绪度 | ✅ |
-| **V-VENUE** | 会场符合性 | ⚠️ 最后单独跑 |
-
-完整检查项在 `rubrics/`，每层一个文件。
-
-### 关于 P3：为什么叫「问题定义」而不是「新颖性」
-
-Novelty 争议几乎从不是"这个想法有没有人做过"的事实之争，而是**定义之争**。
-审稿人说"这就是 X 的变体"，作者说"不是，我们解决的是 Y" —— 双方在谈不同的问题，
-因为论文从未把问题形式化地钉死。
-
-所以 P3 的第一个检查项不是搜前作，而是：**能不能用一句话说清
-`Given ___, produce ___, subject to ___, measured by ___`？**
-说不清，novelty 就无法辩护，无论实验多好。
-
----
-
-## 结构
-
-```
-CRUCIBLE.md              设计公理与架构
-rubrics/                 九个 tier 的完整检查项 —— 系统的知识都在这里
-  A-AUTHORSHIP.md          写作来源三档判断的证据层级与反证
-contracts/               finding.schema.json
-bin/                     确定性采集器（只出事实，不下判断）
-  collect.py               一次跑完全部
-  ingest.py                \input 树、章节、浮动体、宏、行号映射
-  authorship.py            AI-use 披露、生成残留、修订与版本 provenance 事实
-  render.py                tectonic 编译、日志解析、逐页 PNG、PDF 文本层
-  tables.py                LaTeX tabular → 可寻址网格（表内算术复算的基础）
-  numledger.py             数值账本 + 锚定检查（正文数字 vs 它引用的表）
-  refs.py                  引用/标签/图片 双向差集
-  figures.py               版面实测 DPI、色盲模拟、感知哈希查重、300dpi 裁切
-  forensics.py             末位数字、Benford、重复行、小分母 —— 红旗非证据
-  venue.py                 页数、样式篡改、匿名、必需材料
-  validate_report.py        强制三档来源判断位于 REPORT.md 第一节
-skills/
-  crucible/                编排：INGEST→COLLECT→看预览→FAN-OUT→VERIFY→PANEL→VENUE→FIX→REPORT
-  crucible-report/         报告渲染规范
-agents/                  16 个可移植角色定义（含写作来源评估器）
-.codex/agents/           由脚本同步生成的 Codex custom-agent TOML
-venues/                  会场规则数据（带 verified_on 时效字段）
-examples/                真实论文的审查报告样例
-tests/smoke.sh           自检：跑完全部采集器并断言事实文件结构
+python3 bin/collect.py ~/paper -o crucible-out --venue iclr-2027
 ```
 
 ## 输出
 
 ```
 crucible-out/
-├── REPORT.md              主报告（中文叙述 + 英文原文）
-├── authorship_assessment.json 三档来源判断、支持/反对证据与证据缺口
-├── DESK_RISK_CARD.md      一页纸：会不会当场被拒
-├── findings.json          结构化，含被证伪的条目供审计
-├── facts/                 确定性采集结果，可 diff、可 CI
-├── preview/page-NN.png    逐页渲染图
-├── figures/fig-NN.png     每张图 300dpi 裁切
-├── ledgers/claim_ledger.md
-├── patches/               需人工批准的修改
-└── panel/                 四份模拟审稿意见
+├── REPORT.md           问题清单，按严重程度排序，附复算过程
+├── REVISION_PLAN.md    修改建议：先改什么、改哪一行、可直接粘贴的英文替换文本、工作量
+├── DESK_RISK_CARD.md   会不会被直接拒稿（给了 --venue 时）
+├── findings.json       结构化结果，含被验证推翻的条目
+├── panel/              四份模拟审稿意见
+├── patches/            需要你确认的修改
+└── facts/ preview/     采集结果、逐页渲染图
 ```
 
-机械修复直接提交到 `crucible/fixes` 分支，可 `git diff` 可 `git revert`。
+只有一种改法的问题（拼写、断掉的 `\input`、重复的 label）会直接修，提交到稿件仓库的 `crucible/fixes` 分支。涉及数字、结论措辞、删减内容的修改只生成补丁，由你决定。
 
----
+## 流程
 
-## 不做的事
+1. **采集**：编译、逐页渲染、解析表格和数字、测量图片的实际分辨率。脚本只记录事实，不下结论。
+2. **并行审查**：7 个分层审查 agent、4 个模拟审稿人、1 个会场检查 agent 同时运行。模拟审稿人看不到其他 agent 的结果，避免互相影响。稿子较长时按章节分片。
+3. **验证**：P0、P1 和会场类的每条问题都交给一个独立的 verifier 尝试推翻，P2–P4 抽查。被推翻的不进报告。
+4. **修复**：机械问题最多修 3 轮，每轮重新采集并对比，确认没有改坏别的地方。
+5. **汇总**：生成修改建议和写作来源判断，脚本校验报告结构。
 
-- **不代写论文。** 不生成新实验、新章节、新 claim。
-- **不做风格清洗。** 禁用词表、em-dash 偏好默认不产生 finding。
-  需要时用 `--style-profile`，产出独立文件，不占 severity 序列。
-- **不判断科学价值。** 不会说"这个方向没意思"。
-- **不给接收概率。** 没有校准依据的精确数字，正是它审查论文时反对的东西。
-- **不给 AI 百分比。** 只输出用户要求的三档，并公开依据、反证和数据缺口。
-- **无 `--evidence` 时不指控造假**，只报矛盾。
-  说两个数不一致是事实陈述；说一个数是编的是指控，需要证据。
+## 检查范围
+
+| 层级 | 内容 |
+|------|------|
+| P0-BUILD | 编译错误、`??`、缺图、草稿残留、空的被引文件 |
+| P0-INTEG | 正文与表格数字矛盾、表内算术对不上、过期数字、不存在的引用、图片复用 |
+| P0-SURF | 拼写、记号不一致、结构缺失 |
+| P1-CLAIM | 每条主张有没有对应证据，每个机制有没有自己的对照实验 |
+| P2-RIGOR | baseline、ablation、误差棒、选择性报告、分母是否可比 |
+| P3-DEF | 问题定义是否清楚，贡献增量是否站得住 |
+| P4-PRES | 图表在最终尺寸下是否看得清，caption 是否自足 |
+| P5-PANEL | 模拟 AC 和三位审稿人 |
+| V-VENUE | 页数、匿名、样式修改、必需材料 |
+
+每层的完整检查项在 `rubrics/`。
+
+报告第一节是写作来源判断，只给"人类主导 / AI深度参与 / 全AI"三档之一。依据是 AI 使用声明、源码里的生成残留、版本历史等，不根据文风判断，也不给百分比。这是风险提示，不是取证结论。
+
+## 实际效果
+
+这套检查最早用在一篇 NeurIPS 投稿上。那篇稿子已经改过 6 轮，常规静态检查全部通过，仍然查出：
+
+- `checklist.tex` 已经填好，但 `main.tex` 里的 `\input{checklist}` 被注释掉了，PDF 里没有 checklist。NeurIPS 对此直接拒稿。
+- 正文写 19 次干预，引用的那张表里是 6。
+- 表格 Overall 列按 caption 声明的权重算不出印出来的数，反推出实际用的是另一组权重。
+
+之后拿这篇稿子的三份真实审稿意见做了对照，19 条审稿关切中独立命中 13 条，过程和不计分的项见 [examples/VALIDATION-vs-human-reviewers.md](examples/VALIDATION-vs-human-reviewers.md)。完整报告样例见 [examples/AutoResearchClaw-REPORT.md](examples/AutoResearchClaw-REPORT.md)。
+
+## 限制
+
+- 没有 `--evidence` 时只会说"两个数字互相矛盾"，不会断言数据是编造的。
+- 新颖性检查依赖联网检索，结果会随检索内容变化。
+- 模拟审稿的分数没有校准，只用来给问题排优先级。
+- 不做文风润色。
+
+## 目录
+
+```
+skills/crucible/          编排流程
+skills/crucible-report/   报告格式
+agents/                   各审查角色（.codex/agents/ 由脚本从这里生成）
+rubrics/                  每层检查项
+bin/                      采集、合并、校验脚本
+venues/                   会场规则
+contracts/                finding 与来源判断的 JSON schema
+CRUCIBLE.md               设计说明
+```
+
+## 开发
+
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 bin/sync_codex_agents.py --check     # 改过 agents/*.md 后先去掉 --check 重新生成
+tests/smoke.sh ~/paper.zip iclr-2027
+```
