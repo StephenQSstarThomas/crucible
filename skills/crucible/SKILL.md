@@ -7,9 +7,10 @@ description: >
   另综合来源证据将写作方式归入人类主导、AI深度参与、全AI三档，并置于报告最前。
   每条发现可复算、可定位、经对抗验证；机械修复由 agent 执行并提交到独立分支。
   TRIGGERS — "审一下我的论文", "投稿前检查", "这篇稿子有什么问题", "review my paper
-  before submission", "check this manuscript", "$crucible", 或用户给出一个论文
+  before submission", "check this manuscript", "/crucible", 或用户给出一个论文
   仓库/zip 并要求提升质量。
   DO NOT trigger for: 写论文/生成章节（CRUCIBLE 不代写）、单纯的语法润色、已发表论文的文献综述。
+argument-hint: "<paper> [--venue slug] [--purpose submission|camera-ready|preprint] [--evidence dir] [--no-fix]"
 ---
 
 # CRUCIBLE
@@ -17,10 +18,18 @@ description: >
 读 `CRUCIBLE.md` 了解设计公理，读 `rubrics/*.md` 了解每层的完整检查项。
 本文件是**执行流程**。
 
+本次参数：`$ARGUMENTS`
+
 ## 路径约定
 
-`<CRUCIBLE>` 是本仓库根目录：若设置了 `CRUCIBLE_HOME` 就用它，否则取本 SKILL.md
-真实路径（解开符号链接）的上两级目录。开始前确认 `<CRUCIBLE>/bin/collect.py` 存在。
+`<CRUCIBLE>` 是本仓库根目录，开始时解析一次：
+
+```bash
+CRUCIBLE="${CRUCIBLE_HOME:-$(dirname "$(dirname "$(readlink -f "${CLAUDE_SKILL_DIR}")")")}"
+test -f "$CRUCIBLE/bin/collect.py" && echo "$CRUCIBLE"
+```
+
+以 plugin 安装时它是 plugin 目录，用 `install.sh` 链接安装时是 clone 下来的仓库。
 
 `<OUT>` 是本次审查的输出目录，默认 `./crucible-out`；如果它会落在稿件仓库里，改用仓库同级的
 `<repo>-crucible-out`，免得被 fixer 的提交带进去。下文的 `crucible-out/...` 都指 `<OUT>/...`。
@@ -40,7 +49,7 @@ description: >
 ## 1. 入参
 
 ```
-$crucible <paper> [--venue <slug>] [--purpose submission|camera-ready|preprint]
+/crucible <paper> [--venue <slug>] [--purpose submission|camera-ready|preprint]
                   [--evidence <dir>] [--root <main.tex>] [--tiers P0,P1,...]
                   [--no-fix] [--no-panel]
 ```
@@ -107,26 +116,31 @@ python3 <CRUCIBLE>/bin/collect.py <repo> -o <OUT> \
 
 ### 阶段 D — REVIEW（并行波 1）
 
-**同一轮同时派发下列 agent，全部完成后再进入阶段 E。** 它们之间没有依赖，也不共享输出文件。
+**在同一条消息里发出下列全部 Agent 调用（`subagent_type` 用表中名字），全部返回后再进入阶段 E。**
+它们之间没有依赖，也不共享输出文件。
+
+以 plugin 安装时 agent 名带命名空间，如 `crucible:crucible-verifier`；用 `install.sh`
+安装时不带。以当前会话里可用的 agent 列表为准。
 
 | Agent | Tier | 读什么 | 写到 |
 |-------|------|--------|------|
-| `crucible_build_inspector` | P0-BUILD | `render.json` `refs.json` `ingest.json` + preview | `candidates/P0-BUILD.json` |
-| `crucible_integrity_auditor` | P0-INTEG | `numbers.json` `tables.json` `forensics.json` `refs.json` + evidence | `candidates/P0-INTEG.json` |
-| `crucible_surface_auditor` | P0-SURF | `ingest.json` 的 prose_by_section | `candidates/P0-SURF.json` |
-| `crucible_claim_auditor` | P1 | `ingest.json` `numbers.json` `tables.json` | `candidates/P1-CLAIM.json` + `ledgers/claim_ledger.md` |
-| `crucible_rigor_reviewer` | P2 | `tables.json` + 正文 | `candidates/P2-RIGOR.json` |
-| `crucible_novelty_analyst` | P3 | 正文 + 联网检索 | `candidates/P3-DEF.json` |
-| `crucible_figure_critic` | P4 | `figures.json` + figures 裁切 | `candidates/P4-PRES.json` |
-| `crucible_role_ac` | P5 | 论文本体 | `panel/ac.md` |
-| `crucible_role_methodologist` | P5 | 论文本体 | `panel/r1.md` |
-| `crucible_role_empiricist` | P5 | 论文本体 | `panel/r2.md` |
-| `crucible_role_skeptic` | P5 | 论文本体 | `panel/r3.md` |
-| `crucible_venue_marshal` | V | `venue.json` + venue yaml | `candidates/V-VENUE.json` + `DESK_RISK_CARD.md` |
+| `crucible-build-inspector` | P0-BUILD | `render.json` `refs.json` `ingest.json` + preview | `candidates/P0-BUILD.json` |
+| `crucible-integrity-auditor` | P0-INTEG | `numbers.json` `tables.json` `forensics.json` `refs.json` + evidence | `candidates/P0-INTEG.json` |
+| `crucible-surface-auditor` | P0-SURF | `ingest.json` 的 prose_by_section | `candidates/P0-SURF.json` |
+| `crucible-claim-auditor` | P1 | `ingest.json` `numbers.json` `tables.json` | `candidates/P1-CLAIM.json` + `ledgers/claim_ledger.md` |
+| `crucible-rigor-reviewer` | P2 | `tables.json` + 正文 | `candidates/P2-RIGOR.json` |
+| `crucible-novelty-analyst` | P3 | 正文 + 联网检索 | `candidates/P3-DEF.json` |
+| `crucible-figure-critic` | P4 | `figures.json` + figures 裁切 | `candidates/P4-PRES.json` |
+| `crucible-role-ac` | P5 | 论文本体 | `panel/ac.md` |
+| `crucible-role-methodologist` | P5 | 论文本体 | `panel/r1.md` |
+| `crucible-role-empiricist` | P5 | 论文本体 | `panel/r2.md` |
+| `crucible-role-skeptic` | P5 | 论文本体 | `panel/r3.md` |
+| `crucible-venue-marshal` | V | `venue.json` + venue yaml | `candidates/V-VENUE.json` + `DESK_RISK_CARD.md` |
 
 - `--tiers` 限定时只派对应的 agent；`--no-panel` 时不派四个角色；没给 `--venue` 时不派会场。
 - 四个审稿角色**不给任何 findings**，互相不可见。它们与 tier 审查同批跑，正是因为不依赖前者。
-- 超过运行环境的并发上限时分批派发，批内并行，批间按表中顺序。
+- Claude Code 默认同时最多 20 个 subagent（`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`），本波最多 12 个加分片，
+  一般不需要分批；超出时分批，批内并行，批间按表中顺序。
 
 **长稿分片。** `facts/ingest.json` 的 `n_lines` 超过 1500 时，把 surface auditor 和
 claim auditor 按章节切成若干片并行（每片约 800 行，章节不拆开）。第 k 片（从 0 起）
@@ -154,8 +168,8 @@ CRUCIBLE 根目录: <CRUCIBLE>      （rubrics/ contracts/ bin/ 相对此目录�
    - P2–P4 每个 tier 抽 2 条（优先 severity 最高的）；**抽验中有任何一条 REFUTED，
      该 tier 其余条目全部验证**；
    - P5 不验证，它本来就是预测。
-2. 每条候选派发一个 `crucible_verifier`，prompt 里给 finding 全文、仓库路径、`<OUT>`。
-   **同一轮同时派发**，超出并发上限就分批。每个 verifier 只写
+2. 每条候选派发一个 `crucible-verifier`，prompt 里给 finding 全文、仓库路径、`<OUT>`。
+   **在同一条消息里发出多个 Agent 调用**，每批不超过 15 个，一批全部返回再发下一批。每个 verifier 只写
    `verdicts/<finding-id>.json`，不改 candidates。
 3. 全部完成后合并：
 
@@ -178,9 +192,9 @@ python3 <CRUCIBLE>/bin/merge_findings.py <OUT>
 
 对 `fix.kind == "mechanical"` 且未被 REFUTED 的 finding：
 
-1. `crucible_fixer` 逐条应用，每条先读上下文再改，写 `fixes/round-N.json`。
+1. `crucible-fixer` 逐条应用，每条先读上下文再改，写 `fixes/round-N.json`。
 2. 重跑 `bin/collect.py`，diff `facts/` 证明没有引入回归。
-3. `crucible_fix_auditor` 逐条判定，写 `fixes/audit-round-N.json`。
+3. `crucible-fix-auditor` 逐条判定，写 `fixes/audit-round-N.json`。
 4. 有 unaddressed 且轮次 < 3 则再来一轮。
 5. 结束后重跑 `bin/merge_findings.py`，把审计通过的修复标为 `auto_applied`。
 
@@ -194,12 +208,12 @@ python3 <CRUCIBLE>/bin/merge_findings.py <OUT>
 
 ### 阶段 G — SYNTHESIZE（并行波 3）
 
-**同一轮同时派发：**
+**在同一条消息里发出这两个 Agent 调用：**
 
-- `crucible_authorship_assessor`：读 `rubrics/A-AUTHORSHIP.md`、`facts/authorship.json`、源码和
+- `crucible-authorship-assessor`：读 `rubrics/A-AUTHORSHIP.md`、`facts/authorship.json`、源码和
   `findings.json`（只用非 REFUTED 项），写 `authorship_assessment.json`。只选 `人类主导`、
   `AI深度参与`、`全AI` 之一；不输出百分比，不凭 stylometry 升档。
-- `crucible_revision_planner`：读 `findings.json`、`fixes/`、`patches/`、`ledgers/claim_ledger.md`、
+- `crucible-revision-planner`：读 `findings.json`、`fixes/`、`patches/`、`ledgers/claim_ledger.md`、
   `panel/*.md`，写 `REVISION_PLAN.md` —— 按先后顺序排好的修改清单，每条带位置、
   英文替换文本、连带位置、工作量、改完怎么确认。审稿人模拟来源的条目单独成节并标注"预测，非事实"。
 

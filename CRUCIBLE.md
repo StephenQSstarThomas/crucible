@@ -99,7 +99,7 @@ novelty 就无法辩护，无论实验多好。
 ## 3. 架构
 
 ```
-$crucible <paper>                      skills/crucible（编排）
+/crucible <paper>                      skills/crucible（编排）
   │
   ├─ A INGEST    解包、确认主文件与稿件用途（需要问用户的都在这里问完）
   ├─ B COLLECT   bin/collect.py → facts/*.json、逐页 PNG、图裁切（确定性）

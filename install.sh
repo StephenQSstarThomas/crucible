@@ -1,36 +1,28 @@
 #!/usr/bin/env bash
-# Install CRUCIBLE skills and custom agents for Codex (default) or Claude Code.
+# Install CRUCIBLE skills and subagents into Claude Code without the plugin system.
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="symlink"
-PLATFORM="codex"
+DEST="${CLAUDE_HOME:-$HOME/.claude}"
 
 for arg in "$@"; do
     case "$arg" in
         --copy) MODE="copy" ;;
-        --codex) PLATFORM="codex" ;;
-        --claude) PLATFORM="claude" ;;
+        --project) DEST="$PWD/.claude" ;;
         -h|--help)
-            echo "usage: ./install.sh [--codex|--claude] [--copy]"
+            echo "usage: ./install.sh [--project] [--copy]"
+            echo "  --project  install into ./.claude of the current directory"
+            echo "  --copy     copy files instead of symlinking"
             exit 0
             ;;
         *)
             echo "unknown option: $arg" >&2
-            echo "usage: ./install.sh [--codex|--claude] [--copy]" >&2
+            echo "usage: ./install.sh [--project] [--copy]" >&2
             exit 2
             ;;
     esac
 done
-
-if [[ "$PLATFORM" == "codex" ]]; then
-    DEST="${CODEX_HOME:-$HOME/.codex}"
-    AGENT_SRC="$SRC/.codex/agents"
-    python3 "$SRC/bin/sync_codex_agents.py" --check
-else
-    DEST="${CLAUDE_HOME:-$HOME/.claude}"
-    AGENT_SRC="$SRC/agents"
-fi
 
 mkdir -p "$DEST/skills" "$DEST/agents"
 
@@ -54,7 +46,7 @@ link_one() {
     fi
 }
 
-echo "CRUCIBLE -> $DEST  ($PLATFORM, $MODE)"
+echo "CRUCIBLE -> $DEST  ($MODE)"
 
 echo
 echo "skills:"
@@ -64,15 +56,9 @@ done
 
 echo
 echo "agents:"
-if [[ "$PLATFORM" == "codex" ]]; then
-    for f in "$AGENT_SRC"/*.toml; do
-        link_one "$f" "$DEST/agents/$(basename "$f")"
-    done
-else
-    for f in "$AGENT_SRC"/*.md; do
-        link_one "$f" "$DEST/agents/$(basename "$f")"
-    done
-fi
+for f in "$SRC"/agents/*.md; do
+    link_one "$f" "$DEST/agents/$(basename "$f")"
+done
 
 echo
 echo "checking dependencies:"
@@ -109,8 +95,4 @@ if [[ "$MODE" == "copy" ]]; then
 fi
 
 echo
-if [[ "$PLATFORM" == "codex" ]]; then
-    echo 'done. Restart Codex, then try: $crucible ~/path/to/paper --no-fix'
-else
-    echo "done. Restart Claude Code, then try: /crucible ~/path/to/paper --no-fix"
-fi
+echo "done. Restart Claude Code, then try: /crucible ~/path/to/paper --no-fix"

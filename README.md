@@ -1,30 +1,41 @@
 # CRUCIBLE
 
-投稿前自查论文用的一组 Codex skill 和 agent。
+投稿前自查论文用的一组 Claude Code skill 和 subagent。
 
 给它论文的 LaTeX 源码（Overleaf 导出的 zip、git 仓库或本地目录），它会编译 PDF、抽取正文和表格里的数字，再让多个 agent 并行审查，最后给出问题清单和按顺序排好的修改建议。
 
 它不代写论文，也不预测能不能中，只负责在审稿人之前把能查出来的问题查出来。
 
-Claude Code 版本在 [`claude-code`](https://github.com/StephenQSstarThomas/crucible/tree/claude-code) 分支。
+Codex 版本在 [`codex/adaptation`](https://github.com/StephenQSstarThomas/crucible/tree/codex/adaptation) 分支。
 
 ## 安装
 
-```bash
-git clone https://github.com/StephenQSstarThomas/crucible.git ~/crucible
-cd ~/crucible && ./install.sh
+作为 plugin 安装（在 Claude Code 里执行）：
+
+```text
+/plugin marketplace add StephenQSstarThomas/crucible@claude-code
+/plugin install crucible@crucible
 ```
 
-安装脚本把 2 个 skill 和 17 个 agent 链接到 `~/.codex`（或 `$CODEX_HOME`），装完重启 Codex。
+装好后命令是 `/crucible:crucible`。
+
+或者 clone 下来用脚本链接到 `~/.claude`，命令是 `/crucible`：
+
+```bash
+git clone -b claude-code https://github.com/StephenQSstarThomas/crucible.git ~/crucible
+cd ~/crucible && ./install.sh            # --project 装到当前项目的 .claude/
+```
+
+两种方式都是 2 个 skill 加 17 个 subagent，装完重启 Claude Code。
 
 依赖：`python3`、`tectonic`、`pymupdf`、`pillow`、`pyyaml`。没有 `tectonic` 时只能做源码层面的检查，页数、图表清晰度这类要看 PDF 的检查会跳过。
 
 ## 使用
 
 ```text
-$crucible ~/paper.zip --venue iclr-2027 --purpose submission
-$crucible ~/paper --evidence ~/paper/runs     # 提供实验日志，可以核对数字是否与记录一致
-$crucible ~/paper --no-fix                    # 只出报告，不改源码
+/crucible ~/paper.zip --venue iclr-2027 --purpose submission
+/crucible ~/paper --evidence ~/paper/runs     # 提供实验日志，可以核对数字是否与记录一致
+/crucible ~/paper --no-fix                    # 只出报告，不改源码
 ```
 
 | 参数 | 作用 |
@@ -105,7 +116,8 @@ crucible-out/
 ```
 skills/crucible/          编排流程
 skills/crucible-report/   报告格式
-agents/                   各审查角色（.codex/agents/ 由脚本从这里生成）
+agents/                   各审查角色（subagent）
+.claude-plugin/           plugin 与 marketplace 清单
 rubrics/                  每层检查项
 bin/                      采集、合并、校验脚本
 venues/                   会场规则
@@ -117,6 +129,6 @@ CRUCIBLE.md               设计说明
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
-python3 bin/sync_codex_agents.py --check     # 改过 agents/*.md 后先去掉 --check 重新生成
+claude plugin validate .
 tests/smoke.sh ~/paper.zip iclr-2027
 ```

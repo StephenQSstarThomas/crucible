@@ -1,0 +1,14 @@
+{
+  "name": "crucible",
+  "description": "Pre-submission self-check for LaTeX papers: parallel review agents, adversarial verification, and an ordered revision plan.",
+  "version": "0.2.0",
+  "author": {
+    "name": "StephenQSstarThomas"
+  },
+  "repository": "https://github.com/StephenQSstarThomas/crucible",
+  "keywords": [
+    "paper-review",
+    "latex",
+    "self-check"
+  ]
+}

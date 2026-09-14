@@ -1,0 +1,16 @@
+{
+  "name": "crucible",
+  "owner": {
+    "name": "StephenQSstarThomas"
+  },
+  "metadata": {
+    "description": "CRUCIBLE pre-submission paper self-check for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "crucible",
+      "source": "./",
+      "description": "Pre-submission self-check for LaTeX papers: parallel review agents, adversarial verification, and an ordered revision plan."
+    }
+  ]
+}
