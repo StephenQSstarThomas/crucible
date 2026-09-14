@@ -2,18 +2,20 @@
 name: crucible-report
 description: >
   渲染 CRUCIBLE 的最终报告：报告最前的三档写作来源判断、按严重级别排序的发现清单、一页纸 desk-reject 风险卡、
-  claim 账本、修复补丁索引、审稿人模拟意见。中文叙述 + 英文原文引用。
-  由 crucible 编排 skill 在阶段 J 调用；也可在已有 findings.json 的目录上单独重跑。
+  claim 账本、修复补丁索引、审稿人模拟意见，并链接 REVISION_PLAN.md。中文叙述 + 英文原文引用。
+  由 crucible 编排 skill 在阶段 H 调用；也可在已有 findings.json 的目录上单独重跑。
 ---
 
 # 报告渲染
 
 ## 输入
 
-- `crucible-out/candidates/*.json` — 各 tier 的候选（已由 verifier 填 verdict）
+- `crucible-out/findings.json` — 由 `bin/merge_findings.py` 合并、已带 verdict
+- `crucible-out/finding_counts.json` — 摘要表的数字，直接用，不要自己数
+- `crucible-out/REVISION_PLAN.md` — 修改建议，报告里链接，不重复抄写
 - `crucible-out/panel/*.md` — 审稿人模拟
-- `crucible-out/fixes/round-*.json` — 修复记录
-- `crucible-out/facts/*.json` — 用于"已通过"小节
+- `crucible-out/fixes/round-*.json`、`fixes/audit-round-*.json` — 修复记录
+- `crucible-out/candidates/*.passed.md` 与 `crucible-out/facts/*.json` — 用于"已通过"小节
 - `crucible-out/authorship_assessment.json` — 三档来源判断、支持/反对信号与证据缺口
 
 ## 输出
@@ -21,10 +23,7 @@ description: >
 ```
 crucible-out/
 ├── REPORT.md
-├── authorship_assessment.json
-├── DESK_RISK_CARD.md
-├── findings.json        # 全部 finding，含 REFUTED（供审计）
-└── ledgers/claim_ledger.md
+└── DESK_RISK_CARD.md    # 若 venue marshal 已写出则只核对，不重写
 ```
 
 ---
@@ -73,6 +72,9 @@ crucible-out/
 | ... |
 
 **一句话结论**：<现在投出去会怎样>
+
+**先改这三件**（完整顺序见 [REVISION_PLAN.md](REVISION_PLAN.md)）：
+1. <取自 REVISION_PLAN.md "先做这些" 前三行>
 
 ---
 
@@ -146,15 +148,8 @@ crucible-out/
 
 **分歧点**：<四个角色不一致的地方 —— 分歧本身是信息>
 
-### 弱点分诊
-
-| 档 | 含义 | 条目 |
-|----|------|------|
-| A | 截稿前可修 | ... |
-| B | 需补实验 | ... |
-| C | 只能 rebuttal 辩护 | ... |
-| D | 只能认，建议主动写进 limitations | ... |
-
+弱点分诊（A 可修 / B 需补实验 / C 只能 rebuttal / D 只能认）与回应草稿见
+[REVISION_PLAN.md](REVISION_PLAN.md) 的"审稿人可能提出的问题"一节。
 完整意见见 `panel/{ac,r1,r2,r3}.md`。
 ```
 
@@ -187,7 +182,8 @@ schema，不得静默省略：报告顶部写“未完成来源评估”，并�
 python3 <CRUCIBLE>/bin/validate_report.py crucible-out
 ```
 
-校验失败时报告尚未完成，修正结构或 assessment 后重跑。
+它检查：来源判断是第一节；REPORT.md 不含 REFUTED 的 id；REVISION_PLAN.md
+覆盖所有未自动修复的 blocker / major，且不引用 REFUTED 条目。校验失败时报告尚未完成，修正后重跑。
 
 ## 不做的事
 

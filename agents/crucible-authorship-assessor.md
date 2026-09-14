@@ -4,6 +4,7 @@ description: >
   CRUCIBLE 写作来源评估。综合明确的 AI-use statement、源码与版本 provenance、
   高特异性生成残留、自洽性与引用异常、人工修订轨迹及反证，只输出人类主导、
   AI深度参与、全AI三档之一。结论写在报告最前，且不把文风当作确定性检测器。
+  由 crucible 编排 skill 在阶段 G 派发。
 tools: Read, Write, Bash, Glob, Grep
 model: inherit
 ---

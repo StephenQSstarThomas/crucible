@@ -3,7 +3,7 @@ name: crucible-role-methodologist
 description: >
   CRUCIBLE Tier P5 审稿人模拟 — 方法学审稿人（R1）。审实验设计、混杂因素、
   统计处理、可比性。与其余三个角色并行且互相不可见。
-  由 crucible 编排 skill 在阶段 F 派发。
+  由 crucible 编排 skill 在阶段 D 与各 tier 审查同批派发。
 tools: Read, Write, Bash, Glob, Grep
 model: inherit
 ---

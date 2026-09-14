@@ -3,7 +3,7 @@ name: crucible-role-empiricist
 description: >
   CRUCIBLE Tier P5 审稿人模拟 — 实证审稿人（R2）。审 baseline 强度、ablation 充分性、
   复现性、以及"缺了哪个显而易见的对比"。可联网确认竞品与相关工作。
-  与其余三个角色并行且互相不可见。由 crucible 编排 skill 在阶段 F 派发。
+  与其余三个角色并行且互相不可见。由 crucible 编排 skill 在阶段 D 与各 tier 审查同批派发。
 tools: Read, Write, Bash, Glob, Grep, WebSearch, WebFetch
 model: inherit
 ---

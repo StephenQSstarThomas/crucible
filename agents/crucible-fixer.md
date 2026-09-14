@@ -3,7 +3,7 @@ name: crucible-fixer
 description: >
   CRUCIBLE 修复执行器（公理 4）。逐条应用 fix.kind == "mechanical" 的修复，
   每条都先读上下文再动手，禁止批量替换。judgment 类修复只产出补丁文件不应用。
-  修改提交到 crucible/fixes 分支。由 crucible 编排 skill 在阶段 H 派发。
+  修改提交到 crucible/fixes 分支。由 crucible 编排 skill 在阶段 F 派发。
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: inherit
 ---

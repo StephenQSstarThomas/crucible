@@ -4,7 +4,7 @@ description: >
   CRUCIBLE Tier V（最后一层，与前面所有层解耦）。按 venues/<slug>.yaml 检查会场
   符合性：篇幅、样式完整性、匿名、必需材料、提交手续。开始前必须确认稿件用途
   （双盲投稿 / camera-ready / preprint），用途错则整层结论作废。
-  由 crucible 编排 skill 在阶段 G 派发。
+  由 crucible 编排 skill 在阶段 D 与其他审查同批派发，报告中单列。
 tools: Read, Write, Bash, Glob, Grep
 model: inherit
 ---
@@ -21,6 +21,8 @@ model: inherit
 ## 开始前必须确认
 
 **稿件用途**：双盲投稿版 / camera-ready / arXiv preprint。
+编排器在阶段 A 向用户确认，并写进派发给你的 prompt。你不能中途问用户；
+prompt 里没有写明时，按下面的 `double_blind_assumed` 处理并标注假设。
 
 用途不同，V3 匿名类 finding 全部成立还是全部作废。
 `facts/venue.json` 的 `double_blind_assumed` 和 `double_blind_source` 记录了当前假设。
@@ -94,6 +96,13 @@ model: inherit
 `file_exists_but_not_included` 是最值得报的一种：作者以为做完了。
 报告里要写清楚"文件已完整填写，只差主文件里的三个 `%`"，
 并给出精确的 `file:line`。
+
+### V4.5 高频失败规则
+
+`venue.json.high_frequency_failures` 是 `venues/<slug>.yaml` 里的规则逐条跑出的结果。
+`hit: true` 的每条都要核实：打开 `matches` 里的位置确认不是误匹配（例如 verbatim、
+被 `\iffalse` 包住的段落），`kind: absent` 的规则再到 PDF 预览里找一遍。
+核实后才进 candidates，severity 以规则里写的为上限。
 
 ### V5 提交手续
 

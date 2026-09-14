@@ -8,7 +8,7 @@
 
 **默认 severity**：问题定义缺失 = `blocker`；贡献增量不可辩护 = `major`。
 
-**采集器**：`agent-read` + 网络检索（用户已授权 unrestricted）
+**采集器**：`agent-read` + 网络检索
 
 ---
 

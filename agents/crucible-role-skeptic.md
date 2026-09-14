@@ -3,7 +3,7 @@ name: crucible-role-skeptic
 description: >
   CRUCIBLE Tier P5 审稿人模拟 — 怀疑论者（R3）。审主张是否越界、结论是否被数据支撑、
   有无 cherry-picking、叙事有没有跑在证据前面。与其余三个角色并行且互相不可见。
-  由 crucible 编排 skill 在阶段 F 派发。
+  由 crucible 编排 skill 在阶段 D 与各 tier 审查同批派发。
 tools: Read, Write, Bash, Glob, Grep
 model: inherit
 ---

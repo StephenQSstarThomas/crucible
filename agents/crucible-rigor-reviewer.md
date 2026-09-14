@@ -79,6 +79,12 @@ re-adjudicated"），但**没有人类基准**。整篇论文的核心指标悬�
 
 ---
 
+## 输出
+
+`crucible-out/candidates/P2-RIGOR.json` — finding 数组，符合
+`contracts/finding.schema.json`，`verdict` 留空。"已通过"的检查写进
+`crucible-out/candidates/P2-RIGOR.passed.md`，供报告的"已通过"小节使用。
+
 ## 纪律
 
 ### 必须记录"做对了"的项

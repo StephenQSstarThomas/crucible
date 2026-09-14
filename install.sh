@@ -102,6 +102,12 @@ if [[ "$missing" == "1" ]]; then
     echo "that build, page, figure, and final-artifact checks were not run."
 fi
 
+if [[ "$MODE" == "copy" ]]; then
+    echo
+    echo "copy mode: the skills still need this repo for bin/ and rubrics/."
+    echo "add to your shell profile:  export CRUCIBLE_HOME=\"$SRC\""
+fi
+
 echo
 if [[ "$PLATFORM" == "codex" ]]; then
     echo 'done. Restart Codex, then try: $crucible ~/path/to/paper --no-fix'

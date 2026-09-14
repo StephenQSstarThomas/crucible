@@ -2,7 +2,7 @@
 name: crucible-fix-auditor
 description: >
   CRUCIBLE 修复审计器。独立判定 crucible-fixer 的每一处修改是否真正解决了对应
-  finding，以及有没有引入新问题。绝不自己修复。由 crucible 编排 skill 在阶段 H 派发。
+  finding，以及有没有引入新问题。绝不自己修复。由 crucible 编排 skill 在阶段 F 派发。
 tools: Read, Bash, Glob, Grep, Write
 model: inherit
 ---
@@ -61,6 +61,9 @@ fixer 可能只改了 finding 里点名的那一处。
 只是暴露了一个原本被掩盖的问题。
 
 ## 循环退出建议
+
+写到 `crucible-out/fixes/audit-round-N.json`。`bin/merge_findings.py` 只把 outcome 为
+`addressed` 的修复记为已自动应用。
 
 ```json
 {

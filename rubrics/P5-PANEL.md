@@ -25,8 +25,7 @@
 | **R2 实证审稿人** | baseline 强度、ablation 充分性、复现性 | "Missing comparison against [obvious competitor]." |
 | **R3 怀疑论者** | 主张是否过界、结论是否被数据支撑、有无 cherry-picking | "The claim of 'consistently outperforms' rests on N=8." |
 
-角色定义复用用户已有的 `role-area-chair` / `role-methodologist` /
-`role-experimentalist-reviewer` / `role-skeptic` 系列 persona 结构。
+四个角色与 P0–P4 的审查 agent 同批并行派发。它们不读 findings，所以不必等前面的层跑完。
 
 ---
 
@@ -52,7 +51,7 @@
 
 | 档 | 含义 | 行动 |
 |----|------|------|
-| **A — 截稿前可修** | 改写、补表、补说明即可消除 | 立即修，产出补丁 |
+| **A — 截稿前可修** | 改写、补表、补说明即可消除 | 写进 REVISION_PLAN.md 的具体改法 |
 | **B — 需补实验** | 需要跑新实验，时间够则修 | 估算成本，用户决策 |
 | **C — 只能在 rebuttal 辩护** | 设计已定，但有合理理由 | 预写 rebuttal 段落 |
 | **D — 只能认** | 真实局限 | 主动写进 limitations，抢在审稿人前面 |
@@ -60,6 +59,9 @@
 > D 档的处理方式是本 tier 的一个具体建议：**主动承认的局限，
 > 杀伤力远小于被审稿人抓出来的局限。** 把 D 档 weakness 提前写进
 > limitations 一节，能把一条 weakness 变成一条 "authors are aware and honest"。
+
+分诊表和 N3 的回应草稿由 `crucible-revision-planner` 写进 `REVISION_PLAN.md`，
+与 P0–P4 的修改建议放在同一份清单里、但单独成节。
 
 ## N3. Rebuttal 预备
 

@@ -85,14 +85,14 @@
 | I4.5 | 自引没有暴露身份（双盲时）| 交给 V-VENUE，不在此层 | — |
 | I4.6 | 关键 claim 的引用不是二手转引 | 人工标记 | minor |
 
-> I4.1 复用已有的 `citation-verify-and-fix` skill。CRUCIBLE 不重复造轮子，
-> 但会把它的输出并入统一的 findings.json。
+> I4.1 若环境里装了引用核验类 skill（如 `citation-verify-and-fix`）可以复用，
+> 输出仍按 finding 格式写进 `candidates/P0-INTEG.json`；没有就由 integrity auditor 联网抽查。
 
 ## I5. 文本重复与自我抄袭
 
 | ID | 检查项 | 如何判定 | severity |
 |----|--------|----------|----------|
-| I5.1 | 与已发表文献的长片段重合 | 网络检索（用户已授权 unrestricted） | blocker |
+| I5.1 | 与已发表文献的长片段重合 | 网络检索 | blocker |
 | I5.2 | 与作者自己的前作大段重合 | 同上 | major |
 | I5.3 | 论文内部大段自我重复（正文 ≈ 附录） | 内部 n-gram 比对 | minor |
 

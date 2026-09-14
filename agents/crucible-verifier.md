@@ -84,18 +84,22 @@ finding 是否针对了错误的稿件用途？
 | `PLAUSIBLE` | 证伪未成功，但证据不够硬：依赖判断、依赖未确认的稿件用途、或统计筛查信号 |
 | `CONFIRMED` | 认真证伪且全部失败，证据确凿可复算 |
 
-`PLAUSIBLE` 的 finding **severity 降一级**（blocker→major，major→minor）。
+`PLAUSIBLE` 的 finding 在合并时 **severity 降一级**（blocker→major，major→minor）。
 
 ## 输出
 
-在原 finding 上填写：
+写到 `crucible-out/verdicts/<finding-id>.json`，一条 finding 一个文件：
 
 ```json
 {
+  "id": "P0-INTEG-001",
   "verdict": "CONFIRMED | PLAUSIBLE | REFUTED",
   "refutation_attempt": "我试了什么，为什么它没死（或为什么它死了）"
 }
 ```
+
+多个 verifier 并行运行，**不要修改 `candidates/*.json` 或其他 verifier 的文件**。
+合并与 PLAUSIBLE 降级由 `bin/merge_findings.py` 完成，你不用自己改 severity。
 
 `refutation_attempt` 必须具体。写"检查后确认无误"是没有信息量的，
 说明你没真的试。要写：我 grep 了什么、我算了什么、我读了哪几行、结果是什么。

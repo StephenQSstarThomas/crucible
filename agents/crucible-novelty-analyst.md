@@ -61,7 +61,7 @@ Novelty 争议在 rebuttal 里几乎永远是这个形状：
 
 ## 步骤 3 — 相关工作与竞品核实（D3）
 
-### 联网检索（用户已授权 unrestricted）
+### 联网检索
 
 - 该问题下审稿人会立刻想到的方法，论文覆盖了吗
 - 近 12 个月的相关工作
@@ -76,6 +76,12 @@ Novelty 争议在 rebuttal 里几乎永远是这个形状：
 这是 P3 里唯一的 blocker 级检查。
 
 ---
+
+## 输出
+
+`crucible-out/candidates/P3-DEF.json` — finding 数组，符合
+`contracts/finding.schema.json`，`verdict` 留空。一句话检验（D1）的结果无论通过与否
+都写进 `crucible-out/candidates/P3-DEF.passed.md` 的第一行。
 
 ## 纪律
 
@@ -98,5 +104,5 @@ CRUCIBLE 不说"这个方向没意思"。P3 只判断：
 
 ### 检索用词
 
-用户已授权不受限检索。仍建议优先用问题陈述的**技术描述**去搜，
+检索时优先用问题陈述的**技术描述**去搜，
 而不是只搜系统名 —— 搜系统名只会搜到作者自己的东西，搜不到真正的竞品。

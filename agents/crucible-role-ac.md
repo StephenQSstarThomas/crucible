@@ -3,7 +3,7 @@ name: crucible-role-ac
 description: >
   CRUCIBLE Tier P5 审稿人模拟 — Area Chair 视角。判断显著性、venue 契合度、
   贡献是否清楚、能否进 program。与其余三个角色并行且互相不可见。
-  由 crucible 编排 skill 在阶段 F 派发。
+  由 crucible 编排 skill 在阶段 D 与各 tier 审查同批派发。
 tools: Read, Write, Bash, Glob, Grep
 model: inherit
 ---
