@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 from crucible_lib import (collect_macros, find_repo_and_root, flatten,
-                          load_json, to_prose, write_json)
+                          load_json, strip_comment, to_prose, write_json)
 
 VENUE_DIR = Path(__file__).resolve().parent.parent / "venues"
 
@@ -225,13 +225,74 @@ def check_required_material(doc, ing, render, venue) -> dict:
              r"^\s*\d*\.?\s*Limitations?\s*$|\\section\*?\{\s*Limitations"),
             ("broader_impact_required", "broader_impact",
              r"Broader Impact|Societal Impact|Ethics Statement|"
-             r"Ethical Considerations")):
+             r"Ethical Considerations"),
+            ("ai_use_statement_required", "ai_use_statement",
+             r"AI[\s-]+use statement|Use of (?:Generative )?AI|"
+             r"(?:LLM|Large Language Models?) (?:use|usage)"),
+            ("ethics_statement_recommended", "ethics_statement",
+             r"Ethics Statement|Ethical Considerations"),
+            ("reproducibility_statement_recommended", "reproducibility_statement",
+             r"Reproducibility Statement")):
         if venue.get(key):
             in_pdf = bool(re.search(pat, pdf_text, re.M | re.I))
             in_src = bool(re.search(pat, doc.text(), re.M | re.I))
-            out[label] = {"required": True, "present_in_pdf": in_pdf,
+            out[label] = {"required": key.endswith("_required"),
+                          "present_in_pdf": in_pdf,
                           "present_in_source": in_src}
     return out
+
+
+def check_high_frequency_rules(repo: Path, doc, render, venue) -> list[dict]:
+    """Evaluate the venue profile's high_frequency_failures patterns.
+
+    A pattern that itself contains '%' is meant to see comments, so it runs on
+    the raw line; everything else runs on comment-stripped code.
+    """
+    pdf_text = "\n".join((render.get("pdf") or {}).get("text_by_page", []))
+    results = []
+    for rule in venue.get("high_frequency_failures") or []:
+        entry = {"id": rule.get("id"), "severity": rule.get("severity"),
+                 "message": rule.get("message")}
+        if rule.get("detect_absent"):
+            rx = re.compile(rule["detect_absent"], re.I)
+            in_src = bool(rx.search(doc.text()))
+            in_pdf = bool(rx.search(pdf_text)) if pdf_text else None
+            entry.update({"kind": "absent", "present_in_source": in_src,
+                          "present_in_pdf": in_pdf, "hit": not (in_src or in_pdf)})
+            results.append(entry)
+            continue
+        if not rule.get("detect"):
+            continue
+        rx = re.compile(rule["detect"], re.M)
+        use_raw = "%" in rule["detect"]
+        scope = rule.get("scope", "document")
+        threshold = int(rule.get("threshold", 1))
+        matches = []
+        if scope == "repo":
+            for p in sorted(repo.rglob("*.tex")):
+                text = p.read_text(encoding="utf-8", errors="replace")
+                for i, line in enumerate(text.splitlines(), start=1):
+                    if rx.search(line if use_raw else strip_comment(line)[0]):
+                        matches.append({"file": str(p.relative_to(repo)),
+                                        "line": i, "text": line.strip()[:120]})
+        else:
+            for l in doc.lines:
+                if l.in_verbatim:
+                    continue
+                if not rx.search(l.raw if use_raw else l.code):
+                    continue
+                if scope == "adjacent_to_sectioning":
+                    lo = max(0, l.vline - 3)
+                    window = "\n".join(x.code for x in doc.lines[lo:l.vline + 2])
+                    if not re.search(SECTIONING, window):
+                        continue
+                matches.append({"file": l.file, "line": l.lineno,
+                                "text": l.raw.strip()[:120]})
+        entry.update({"kind": "pattern", "scope": scope, "threshold": threshold,
+                      "count": len(matches), "hit": len(matches) >= threshold,
+                      "matches": matches[:20]})
+        results.append(entry)
+    return results
 
 
 def main():
@@ -321,6 +382,8 @@ def main():
         "style_file": style_info,
         "style_tampering": check_style_tampering(doc, ing),
         "required_material": check_required_material(doc, ing, render, venue),
+        "high_frequency_failures": check_high_frequency_rules(repo, doc, render,
+                                                              venue),
     }
     if dbl:
         out["anonymity"] = check_anonymity(doc, ing, render, venue)
@@ -358,9 +421,13 @@ def main():
         for cc in c["commented_out_inputs"]:
             print(f"      ! commented out at {cc['file']}:{cc['line']} "
                   f"-> {cc['target']} ({cc['target_bytes']} bytes, filled in)")
-    for k in ("limitations", "broader_impact"):
+    for k in ("limitations", "broader_impact", "ai_use_statement",
+              "ethics_statement", "reproducibility_statement"):
         if k in rm:
             print(f"  {k}: in_pdf={rm[k]['present_in_pdf']}")
+    for h in out["high_frequency_failures"]:
+        if h["hit"]:
+            print(f"  ! [{h['severity']}] {h['id']}: {h['message']}")
     if dbl:
         an = out["anonymity"]
         allb = an.get("forbidden_class_options_all_roots") or []

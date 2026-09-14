@@ -1,0 +1,66 @@
+slug: iclr-2027
+name: ICLR 2027 (Conference Track)
+kind: conference
+
+# ---- 篇幅 ----
+content_pages: 9            # initial submission; 10 for rebuttal / camera-ready
+counts_toward_limit: [main_text, figures, tables]
+excluded_from_limit: [references, appendix, ai_use_statement, ethics_statement, reproducibility_statement, acknowledgments]
+
+# ---- 匿名 ----
+double_blind: true
+forbidden_class_options: []
+final_macro_forbidden: '\iclrfinalcopy'
+anonymize_supplementary: true
+anonymize_linked_code: true
+
+# ---- 样式 ----
+required_style_file: iclr2027_conference.sty
+required_bst: iclr2027_conference.bst
+style_modification_forbidden: true
+word_template_available: false
+paper_size: US Letter
+notes_style: |
+  "Tweaking the style files may be grounds for rejection." Title 17pt small caps, 10pt body,
+  5.5in x 9in text block. Authors hidden while \iclrfinalcopy is commented out.
+
+# ---- 必需材料 ----
+checklist_required: false
+ai_use_statement_required: true       # "\subsection*{AI use statement}" -- required, <= 1 page, not counted
+ethics_statement_recommended: true    # <= 1 page, not counted, at end of main text before references
+reproducibility_statement_recommended: true
+limitations_required: false
+broader_impact_required: false
+
+desk_reject_on:
+  - page_limit_exceeded
+  - style_modification
+  - deanonymization
+  - non_official_template
+  - missing_ai_use_statement
+
+sources:
+  - iclr2027_conference.tex (official style package, dated 2026-07-28)
+verified_on: 2026-09-13
+verified_by: official-template-file
+staleness_warning_after_days: 180
+
+high_frequency_failures:
+  - id: finalcopy-enabled
+    detect: '^\s*\\iclrfinalcopy'
+    message: "\\iclrfinalcopy 未注释，会暴露作者"
+    severity: blocker
+  - id: missing-ai-use-statement
+    detect_absent: 'AI use statement'
+    message: "ICLR 2027 要求 AI use statement（不计页数）"
+    severity: blocker
+  - id: systematic-vspace
+    detect: '\\vspace\{-[0-9.]+(em|ex|pt|in|cm)\}'
+    threshold: 10
+    scope: adjacent_to_sectioning
+    message: "系统性负间距压缩章节，属于样式修改"
+    severity: blocker
+  - id: github-link
+    detect: 'github\.com/'
+    message: "非匿名代码链接"
+    severity: blocker
