@@ -91,6 +91,22 @@ class PipelineExitTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required collectors failed", result.stderr)
 
+    def test_explicit_root_reaches_every_collector(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paper = Path(tmp) / "paper"
+            paper.mkdir()
+            for name in ("main.tex", "alt.tex"):
+                (paper / name).write_text(
+                    "\\documentclass{article}\n\\begin{document}\n"
+                    "\\section{Intro}\nText.\n\\end{document}\n",
+                    encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "bin" / "collect.py"), str(paper),
+                 "-o", str(Path(tmp) / "out"), "--root", "alt.tex",
+                 "--skip-render"],
+                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

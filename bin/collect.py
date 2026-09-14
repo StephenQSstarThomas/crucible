@@ -30,6 +30,8 @@ STAGES = [
     ("figures",   ["figures.py"],   False),
     ("forensics", ["forensics.py"], True),
 ]
+# these read earlier facts instead of re-resolving the root file
+NO_ROOT_ARG = {"figures", "forensics"}
 
 
 def main():
@@ -54,7 +56,7 @@ def main():
             results[name] = {"status": "skipped"}
             continue
         argv = [sys.executable, str(HERE / cmd[0]), args.target, "-o", args.out]
-        if args.root:
+        if args.root and name not in NO_ROOT_ARG:
             argv += ["--root", args.root]
         if name == "forensics" and args.evidence:
             argv += ["--evidence", args.evidence]
